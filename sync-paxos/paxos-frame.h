@@ -17,24 +17,6 @@
 // 2. Payload Length (4 bytes) - The length of the payload in bytes.
 // 3. Payload (variable length) - The actual data of the message, which can vary in size depending on the type of message.
 
-class PaxosFrame : public ns3::Header
-{
-public:
-    static ns3::TypeId GetTypeId(void);
-    virtual void Print(std::ostream &os) const;
-    virtual ns3::TypeId GetInstanceTypeId(void) const;
-    virtual uint32_t GetSerializedSize(void) const;
-    virtual void Serialize(ns3::Buffer::Iterator start) const;
-    virtual uint32_t Deserialize(ns3::Buffer::Iterator start);
-    virtual void SetSignature(uint32_t signature) { m_signature = signature; }
-    virtual uint32_t GetSignature() const { return m_signature; }
-    virtual void SetPayloadLength(uint32_t payloadLength) { m_payloadLength = payloadLength; }
-    virtual uint32_t GetPayloadLength() const { return m_payloadLength; }
-
-private:
-    uint32_t m_signature;  // Signature to identify the message type
-    uint32_t m_payloadLength; // Length of the payload
-};
 
 // This class represents a proposal frame in the Paxos protocol.
 // 1. Signature: "PROP"
@@ -48,22 +30,24 @@ private:
 class ProposalFrame : public ns3::Header
 {
 public:
-    static ns3::TypeId GetTypeId(void);
+    ProposalFrame();
+    static ns3::TypeId GetTypeId();
+    ns3::TypeId GetInstanceTypeId() const override;
 
-    virtual void Print(std::ostream &os) const override;
-    virtual ns3::TypeId GetInstanceTypeId(void) const override;
-    virtual uint32_t GetSerializedSize(void) const override;
-    virtual void Serialize(ns3::Buffer::Iterator start) const override;
-    virtual uint32_t Deserialize(ns3::Buffer::Iterator start) override;
+    void Print(std::ostream &os) const override;
+    uint32_t GetSerializedSize() const override;
+    void Serialize(ns3::Buffer::Iterator start) const override;
+    uint32_t Deserialize(ns3::Buffer::Iterator start) override;
 
     // Constructor to initialize the proposal frame with proposer ID, proposal ID, value, and timestamp
     ProposalFrame(uint32_t proposerId, uint64_t proposalId, uint32_t value, ns3::Time timestamp);
+    ~ProposalFrame();
 
     // Getters for the proposal frame fields
-    uint32_t GetProposerId() const { return m_proposerId; }
-    uint64_t GetProposalId() const { return m_proposalId; }
-    uint32_t GetValue() const { return m_value; }
-    ns3::Time GetTimestamp() const { return m_timestamp; }
+    uint32_t GetProposerId() const;
+    uint64_t GetProposalId() const;
+    uint32_t GetValue() const;
+    ns3::Time GetTimestamp() const;
 private:
     // Payload fields
     uint32_t m_proposerId; // ID of the proposer
@@ -84,19 +68,23 @@ private:
 class AcceptFrame : public ns3::Header 
 {
 public:
-    static ns3::TypeId GetTypeId(void);
-    virtual void Print(std::ostream &os) const override;
-    virtual ns3::TypeId GetInstanceTypeId(void) const override;
-    virtual uint32_t GetSerializedSize(void) const override;
-    virtual void Serialize(ns3::Buffer::Iterator start) const override;
-    virtual uint32_t Deserialize(ns3::Buffer::Iterator start) override;
+    AcceptFrame();
+    static ns3::TypeId GetTypeId();
+    ns3::TypeId GetInstanceTypeId() const override;
+
+    void Print(std::ostream &os) const override;
+    uint32_t GetSerializedSize() const override;
+    void Serialize(ns3::Buffer::Iterator start) const override;
+    uint32_t Deserialize(ns3::Buffer::Iterator start) override;
 
     AcceptFrame(uint32_t acceptorId, uint64_t proposalId, uint32_t nodeId, ns3::Time timestamp);
+    ~AcceptFrame();
     
-    uint32_t GetAcceptorId() const { return m_acceptorId; }
-    uint64_t GetProposalId() const { return m_proposalId; }
-    uint32_t GetNodeId() const { return m_nodeId; }
-    ns3::Time GetTimestamp() const { return m_timestamp; }
+    // Getters for the accept frame fields
+    uint32_t GetAcceptorId() const;
+    uint64_t GetProposalId() const;
+    uint32_t GetNodeId() const;
+    ns3::Time GetTimestamp() const;
 private:
     uint32_t m_acceptorId; // ID of the acceptor
     uint64_t m_proposalId; // ID of the proposal
@@ -115,19 +103,22 @@ private:
 class DecisionFrame : public ns3::Header 
 {
 public:
-    static ns3::TypeId GetTypeId(void);
-    virtual void Print(std::ostream &os) const override;
-    virtual ns3::TypeId GetInstanceTypeId(void) const override;
-    virtual uint32_t GetSerializedSize(void) const override;
-    virtual void Serialize(ns3::Buffer::Iterator start) const override;
-    virtual uint32_t Deserialize(ns3::Buffer::Iterator start) override;
+    DecisionFrame();
+    static ns3::TypeId GetTypeId();
+    ns3::TypeId GetInstanceTypeId() const override;
 
-    DecisionFrame(uint32_t proposerId, uint64_t proposalId, uint32_t value, ns3::Time timestamp)
+    void Print(std::ostream &os) const override;
+    uint32_t GetSerializedSize() const override;
+    void Serialize(ns3::Buffer::Iterator start) const override;
+    uint32_t Deserialize(ns3::Buffer::Iterator start) override;
 
-    uint32_t GetProposerId() const { return m_proposerId; }
-    uint64_t GetProposalId() const { return m_proposalId; }
-    uint32_t GetValue() const { return m_value; }
-    ns3::Time GetTimestamp() const { return m_timestamp; }
+    DecisionFrame(uint32_t proposerId, uint64_t proposalId, uint32_t value, ns3::Time timestamp);
+    ~DecisionFrame();
+
+    uint32_t GetProposerId() const;
+    uint64_t GetProposalId() const;
+    uint32_t GetValue() const;
+    ns3::Time GetTimestamp() const;
 private:
     uint32_t m_proposerId; // ID of the proposer
     uint64_t m_proposalId; // ID of the proposal

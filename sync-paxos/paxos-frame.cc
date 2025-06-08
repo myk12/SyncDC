@@ -2,6 +2,8 @@
 
 // Proposal Frame
 
+// Define log
+NS_LOG_COMPONENT_DEFINE("PaxosFrame");
 
 ns3::TypeId ProposalFrame::GetTypeId(void) {
     static ns3::TypeId tid = ns3::TypeId("ProposalFrame")
@@ -29,24 +31,37 @@ void ProposalFrame::Serialize(ns3::Buffer::Iterator start) const {
     start.WriteU32(m_proposerId);
     start.WriteU64(m_proposalId);
     start.WriteU32(m_value);
-    start.WriteU64(m_timestamp);
+    // Convert ns3::Time to uint64_t for serialization
+    uint64_t timestamp = m_timestamp.GetNanoSeconds();
+    start.WriteU64(timestamp);
 }
 
 uint32_t ProposalFrame::Deserialize(ns3::Buffer::Iterator start) {
     m_proposerId = start.ReadU32();
     m_proposalId = start.ReadU64();
     m_value = start.ReadU32();
-    m_timestamp = start.ReadU64();
+    
+    // Convert uint64_t back to ns3::Time
+    uint64_t timestamp = start.ReadU64();
+    // Convert to 1233ns format
+    m_timestamp = ns3::Time(std::to_string(timestamp) + "ns");
+
     return GetSerializedSize();
 }
+
+ProposalFrame::ProposalFrame() : m_proposerId(0), m_proposalId(0), m_value(0), m_timestamp(0) {}
 
 ProposalFrame::ProposalFrame(uint32_t proposerId, uint64_t proposalId, uint32_t value, ns3::Time timestamp)
     : m_proposerId(proposerId), m_proposalId(proposalId), m_value(value), m_timestamp(timestamp) {}
 
+ProposalFrame::~ProposalFrame() {
+    // Destructor logic if needed
+}
+
 uint32_t ProposalFrame::GetProposerId() const { return m_proposerId; }
 uint64_t ProposalFrame::GetProposalId() const { return m_proposalId; }
 uint32_t ProposalFrame::GetValue() const { return m_value; }
-uint64_t ProposalFrame::GetTimestamp() const { return m_timestamp; }
+ns3::Time ProposalFrame::GetTimestamp() const { return m_timestamp; }
 
 
 // Accept Frame
@@ -77,24 +92,34 @@ void AcceptFrame::Serialize(ns3::Buffer::Iterator start) const {
     start.WriteU32(m_acceptorId);   
     start.WriteU64(m_proposalId);
     start.WriteU32(m_nodeId);
-    start.WriteU64(m_timestamp);
+    // Convert ns3::Time to uint64_t for serialization
+    uint64_t timestamp = m_timestamp.GetNanoSeconds();
+    start.WriteU64(timestamp);
 }
 
 uint32_t AcceptFrame::Deserialize(ns3::Buffer::Iterator start) {
     m_acceptorId = start.ReadU32();
     m_proposalId = start.ReadU64();
     m_nodeId = start.ReadU32();
-    m_timestamp = start.ReadU64();
+    // Convert uint64_t back to ns3::Time
+    uint64_t timestamp = start.ReadU64();
+    m_timestamp = ns3::Time(std::to_string(timestamp) + "ns");
     return GetSerializedSize();
 }
+
+AcceptFrame::AcceptFrame() : m_acceptorId(0), m_proposalId(0), m_nodeId(0), m_timestamp(0) {}
 
 AcceptFrame::AcceptFrame(uint32_t acceptorId, uint64_t proposalId, uint32_t nodeId, ns3::Time timestamp)
     : m_acceptorId(acceptorId), m_proposalId(proposalId), m_nodeId(nodeId), m_timestamp(timestamp) {}
 
+AcceptFrame::~AcceptFrame() {
+    // Destructor logic if needed
+}
+
 uint32_t AcceptFrame::GetAcceptorId() const { return m_acceptorId; }
 uint64_t AcceptFrame::GetProposalId() const { return m_proposalId; }
 uint32_t AcceptFrame::GetNodeId() const { return m_nodeId; }
-uint64_t AcceptFrame::GetTimestamp() const { return m_timestamp; }
+ns3::Time AcceptFrame::GetTimestamp() const { return m_timestamp; }
 
 // Decision Frame
 
@@ -111,7 +136,7 @@ ns3::TypeId DecisionFrame::GetInstanceTypeId(void) const {
 }
 
 void DecisionFrame::Print(std::ostream &os) const {
-    os << "DecisionFrame: DecisionId=" << m_decisionId
+    os << "DecisionFrame: DecisionId=" << m_proposerId
        << ", ProposalId=" << m_proposalId
        << ", Value=" << m_value
        << ", Timestamp=" << m_timestamp;
@@ -125,19 +150,29 @@ void DecisionFrame::Serialize(ns3::Buffer::Iterator start) const {
     start.WriteU32(m_proposerId);
     start.WriteU64(m_proposalId);
     start.WriteU32(m_value);
-    start.WriteU64(m_timestamp);
+    uint64_t timestamp = m_timestamp.GetNanoSeconds();
+    start.WriteU64(timestamp);
 }
 
 uint32_t DecisionFrame::Deserialize(ns3::Buffer::Iterator start) {
     m_proposerId = start.ReadU32();
     m_proposalId = start.ReadU64();
     m_value = start.ReadU32();
-    m_timestamp = start.ReadU64();
+    // Convert uint64_t back to ns3::Time
+    uint64_t timestamp = start.ReadU64();
+    m_timestamp = ns3::Time(std::to_string(timestamp) + "ns");
     return GetSerializedSize();
 }   
 
+DecisionFrame::DecisionFrame()
+    : m_proposerId(0), m_proposalId(0), m_value(0), m_timestamp(0) {}
+
 DecisionFrame::DecisionFrame(uint32_t proposerId, uint64_t proposalId, uint32_t value, ns3::Time timestamp)
     : m_proposerId(proposerId), m_proposalId(proposalId), m_value(value), m_timestamp(timestamp) {}
+
+DecisionFrame::~DecisionFrame() {
+    // Destructor logic if needed
+}
 
 uint32_t DecisionFrame::GetProposerId() const { return m_proposerId; }
 uint64_t DecisionFrame::GetProposalId() const { return m_proposalId; }  

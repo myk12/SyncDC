@@ -5,6 +5,10 @@
 #include "ns3/csma-module.h"
 #include "ns3/applications-module.h"
 
+#include "paxos-app.h"
+#include "paxos-frame.h"
+#include "paxos-common.h"    
+
 // Define Log Component
 
 NS_LOG_COMPONENT_DEFINE("SyncPaxos");
@@ -16,8 +20,8 @@ NS_LOG_COMPONENT_DEFINE("SyncPaxos");
 int main(int argc, char *argv[]) {
 
     ns3::LogComponentEnable("SyncPaxos", ns3::LOG_INFO);
-    ns3::LogComponentEnable("UdpEchoClientApplication", ns3::LOG_INFO);
-    ns3::LogComponentEnable("UdpEchoServerApplication", ns3::LOG_INFO);
+    ns3::LogComponentEnable("PaxosApp", ns3::LOG_INFO);
+    ns3::LogComponentEnable("PaxosFrame", ns3::LOG_INFO);
     ns3::CommandLine cmd;
     cmd.Parse(argc, argv);
 
@@ -31,7 +35,7 @@ int main(int argc, char *argv[]) {
     // Create 
     ns3::CsmaHelper csma;
     csma.SetChannelAttribute("DataRate", ns3::StringValue("5Mbps"));
-    csma.SetChannelAttribute("Delay", ns3::StringValue("2ms"));
+    csma.SetChannelAttribute("Delay", ns3::StringValue("100us"));
 
     ns3::NetDeviceContainer devices;
     devices = csma.Install(nodes);
@@ -50,19 +54,21 @@ int main(int argc, char *argv[]) {
     NS_LOG_INFO("Setting up UDP echo server and client");
     ns3::Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    uint16_t port = 9;
-    ns3::UdpEchoServerHelper echoServer(port);
-    ns3::ApplicationContainer serverApps = echoServer.Install(nodes.Get(1));
-    serverApps.Start(ns3::Seconds(1.0));
-    serverApps.Stop(ns3::Seconds(10.0));
+    // Install the Paxos application on each node
+    ns3::ApplicationContainer apps;
+    NodeInfoList nodeInfoList;
+    for (uint32_t i = 0; i < nodes.GetN(); ++i) {
+        ns3::Ptr<ns3::Node> node = nodes.Get(i);
+        ns3::Ipv4Address address = interfaces.GetAddress(i);
+        uint16_t port = 10000;
+        nodeInfoList.push_back({i, address, port});
 
-    ns3::UdpEchoClientHelper echoClient(interfaces.GetAddress(1), port);
-    echoClient.SetAttribute("MaxPackets", ns3::UintegerValue(1));
-    echoClient.SetAttribute("Interval", ns3::TimeValue(ns3::Seconds(1.0)));
-    echoClient.SetAttribute("PacketSize", ns3::UintegerValue(1024));
-    ns3::ApplicationContainer clientApps = echoClient.Install(nodes.Get(0));
-    clientApps.Start(ns3::Seconds(2.0));
-    clientApps.Stop(ns3::Seconds(10.0));
+        ns3::Ptr<PaxosApp> paxosApp = ns3::CreateObject<PaxosApp>(i, nodeInfoList);
+        node->AddApplication(paxosApp);
+        paxosApp->SetStartTime(ns3::Seconds(1.0));
+        paxosApp->SetStopTime(ns3::Seconds(1.2));
+        apps.Add(paxosApp);
+    }
 
     ns3::Simulator::Run();
     ns3::Simulator::Destroy();

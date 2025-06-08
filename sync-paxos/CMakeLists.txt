@@ -5,8 +5,23 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Add executable
-add_executable(sync-paxos paxos-main.cc)
+# Add source files
+set(SOURCE_FILES
+    paxos-main.cc
+    paxos-app.cc
+    paxos-frame.cc
+    paxos-common.cc
+)
+
+# Add Headers
+set(HEADER_FILES
+    paxos-app.h
+    paxos-frame.h
+    paxos-common.h
+)
+
+# Specify executable
+add_executable(sync-paxos ${SOURCE_FILES} ${HEADER_FILES})
 
 # Link required NS-3 libraries
 target_link_libraries(sync-paxos

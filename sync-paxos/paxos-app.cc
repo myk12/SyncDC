@@ -1,9 +1,18 @@
 #include "paxos-app.h"
 #include "paxos-frame.h"
 
+// define LOG
+NS_LOG_COMPONENT_DEFINE("PaxosApp");
+
+PaxosApp::PaxosApp()
+    : m_nodeId(0), m_numNodes(0), m_nextProposalId(0)
+{
+    NS_LOG_FUNCTION(this);
+}
+
 PaxosApp::PaxosApp(uint32_t selfId, NodeInfoList nodes)
 {
-    m_selfID = selfId;
+    m_nodeId = selfId;
     m_numNodes = nodes.size();
     m_nodes = nodes;
 }
@@ -17,9 +26,7 @@ PaxosApp::GetTypeId(void)
 {
     static ns3::TypeId tid = ns3::TypeId("PaxosApp")
         .SetParent<ns3::Application>()
-        .AddConstructor<PaxosApp>()
-        .AddAttribute("NodeId", "Node ID", uint32_t(0), MakeUint32Accessor(&PaxosApp::m_nodeId), MakeUint32Checker<uint32_t>())
-        .AddAttribute("NumNodes", "Number of nodes in the network", uint32_t(0), MakeUint32Accessor(&PaxosApp::m_numNodes), MakeUint32Checker<uint32_t>());
+        .AddConstructor<PaxosApp>();
         return tid;
 }
 
@@ -33,11 +40,11 @@ PaxosApp::StartApplication(void)
     CreateSendSocket();
 
     // Start Acceptor Thread
-    NS_LOG_INFO("Starting PaxosApp for Node " << m_selfID);
+    NS_LOG_INFO("Starting PaxosApp for Node " << m_nodeId);
     ns3::Simulator::ScheduleNow(&PaxosApp::StartAcceptorThread, this);
 
     // Start Proposer Thread
-    NS_LOG_INFO("Starting Proposer Thread for Node " << m_selfID);
+    NS_LOG_INFO("Starting Proposer Thread for Node " << m_nodeId);
     ns3::Simulator::ScheduleNow(&PaxosApp::StartProposerThread, this);
 }
 
@@ -63,10 +70,11 @@ void
 PaxosApp::CreateSendSocket()
 {
     // Create a UDP socket for sending messages
-    m_sendSocket = ns3::Socket::CreateSocket(GetNode(), ns3::UdpSocketFactory::GetTypeId());
+    auto tid = ns3::TypeId::LookupByName("ns3::UdpSocketFactory");
+    m_sendSocket = ns3::Socket::CreateSocket(GetNode(), tid);
     if (!m_sendSocket)
     {
-        NS_LOG_ERROR("Failed to create send socket for PaxosApp " << m_selfID);
+        NS_LOG_ERROR("Failed to create send socket for PaxosApp " << m_nodeId);
         return;
     }
 }
@@ -75,10 +83,11 @@ void
 PaxosApp::CreateRecvSocket()
 {
     // Create a UDP socket for receiving messages
-    m_recvSocket = ns3::Socket::CreateSocket(GetNode(), ns3::UdpSocketFactory::GetTypeId());
+    auto tid = ns3::TypeId::LookupByName("ns3::UdpSocketFactory");
+    m_recvSocket = ns3::Socket::CreateSocket(GetNode(), tid);
     if (!m_recvSocket)
     {
-        NS_LOG_ERROR("Failed to create receive socket for PaxosApp " << m_selfID);
+        NS_LOG_ERROR("Failed to create receive socket for PaxosApp " << m_nodeId);
         return;
     }
 
@@ -86,7 +95,7 @@ PaxosApp::CreateRecvSocket()
     ns3::Address local = ns3::InetSocketAddress(ns3::Ipv4Address::GetAny(), 10000);
     if (m_recvSocket->Bind(local) == -1)
     {
-        NS_LOG_ERROR("Failed to bind receive socket for PaxosApp " << m_selfID);
+        NS_LOG_ERROR("Failed to bind receive socket for PaxosApp " << m_nodeId);
         return;
     }
 
@@ -104,7 +113,7 @@ void
 PaxosApp::StartProposerThread()
 {
     // TODO: Implement Proposer Thread logic
-    NS_LOG_INFO("Starting Proposer Thread for Node " << m_nodeId);
+    NS_LOG_INFO("Starting Proposer Thread for Node " << m_nodeId);          
 
     // First check if it is my turn to propose
     // If it is my turn, create a proposal and send it to all nodes
@@ -117,7 +126,7 @@ PaxosApp::StartProposerThread()
     if (m_nodeId == (now.GetMilliSeconds() % m_numNodes))
     {
         NS_LOG_INFO("Node " << m_nodeId << " is the proposer for this round.");
-        
+
         // Create a new proposal
         std::shared_ptr<Proposal> proposal = std::make_shared<Proposal>();
         proposal->setProposalId(m_nextProposalId++);
@@ -127,8 +136,8 @@ PaxosApp::StartProposerThread()
         proposal->setNumAck(0);
         NS_LOG_INFO("Created proposal with ID " << proposal->getProposalId() << " by Node " << m_nodeId);
 
-        // Add the proposal to the queue
-        m_proposals.push(proposal);
+        // Add proposal to the map
+        m_proposals[proposal->getProposalId()] = proposal;
         NS_LOG_INFO("Proposal added to queue for Node " << m_nodeId);
         // Send the proposal to all nodes
         SendProposeToAll(proposal);
@@ -145,74 +154,69 @@ PaxosApp::StartProposerThread()
 }
 
 void
-PaxosApp::ReceiveMessage(Ptr<Packet> packet, const Address& from)
+PaxosApp::ReceiveMessage(ns3::Ptr<ns3::Socket> socket)
 {
-    NS_LOG_INFO("PaxosApp " << m_nodeId << " received a message from " << InetSocketAddress::ConvertFrom(from).GetIpv4());
-    // Process the received message
-    // Parse frame type
+    NS_LOG_INFO("PaxosApp " << m_nodeId << " receiving message on socket " << socket->GetNode()->GetId());
+    ns3::Ptr<ns3::Packet> packet;
+    ns3::Address from;
 
-    // Get Signature and Payload Length
-    ns3::Buffer::Iterator start = packet->Begin();
-    uint32_t signature = start.ReadU32(); // Read the signature
-    uint32_t payloadLength = start.ReadU32(); // Read the payload length
-    NS_LOG_INFO("Received packet with Signature: " << signature << ", Payload Length: " << payloadLength);
-    // Check the signature to determine the type of frame
-    if (signature == 0x50524F43) // "PROP"
+    // Receive the packet
+    while ((packet = socket->RecvFrom(from)))
     {
-        // Parse the proposal frame
-        ns3::Ptr<ProposalFrame> frame = Create<ProposalFrame>();
-        packet->RemoveHeader(*frame);
-        NS_LOG_INFO("Proposal Frame parsed with Proposer ID " << frame->GetProposerId() 
-                    << ", Proposal ID " << frame->GetProposalId() 
-                    << ", Value " << frame->GetValue() 
-                    << ", Timestamp " << frame->GetTimestamp());
+        NS_LOG_INFO("PaxosApp " << m_nodeId << " received a packet of size " << packet->GetSize() 
+                    << " from " << ns3::InetSocketAddress::ConvertFrom(from).GetIpv4());
 
-        // Schedule the proposal to be processed
-        ns3::Simulator::ScheduleNow(&PaxosApp::DoReceivedProposalMessage, this, frame);
-    }
-    else if (signature == 0x41435054) // "ACPT"
-    {
-        // Parse the accept frame
-        ns3::Ptr<AcceptFrame> frame = Create<AcceptFrame>();
-        packet->RemoveHeader(*frame);
-        NS_LOG_INFO("Accept Frame parsed with Acceptor ID " << frame->GetAcceptorId() 
-                    << ", Proposal ID " << frame->GetProposalId() 
-                    << ", Node ID " << frame->GetNodeId() 
-                    << ", Timestamp " << frame->GetTimestamp());
+        uint8_t signature[4];
+        // Read the first 4 bytes to determine the signature
+        packet->CopyData(signature, sizeof(signature));
+        // Check the signature to determine the type of frame
+        if (isProposalSignature(signature)) // "PROP"
+        {
+            // Parse the proposal frame
+            std::shared_ptr<ProposalFrame> frame = std::make_shared<ProposalFrame>();
+            packet->RemoveHeader(*frame);
+            NS_LOG_INFO("Proposal Frame parsed with Proposer ID " << frame->GetProposerId() 
+                        << ", Proposal ID " << frame->GetProposalId() 
+                        << ", Value " << frame->GetValue() 
+                        << ", Timestamp " << frame->GetTimestamp());
 
-        // Schedule the proposal to be processed
-        ns3::Simulator::ScheduleNow(&PaxosApp::DoReceivedAcceptMessage, this, frame);
-    }
-    else if (signature == 0x44454349) // "DECI"
-    {
-        // Parse the decision frame
-        ns3::Ptr<DecisionFrame> frame = Create<DecisionFrame>();
-        packet->RemoveHeader(*frame);
-        NS_LOG_INFO("Decision Frame parsed with Decision ID " << frame->GetDecisionId() 
-                    << ", Value " << frame->GetValue() 
-                    << ", Timestamp " << frame->GetTimestamp());
-        
-        // Schedule the proposal to be processed
-        ns3::Simulator::ScheduleNow(&PaxosApp::DoReceivedDecisionMessage, this, frame);
-    }
-    else
-    {
-        NS_LOG_ERROR("Unknown packet signature: " << signature);
-        return; // Unknown packet type, ignore it
-    }
+            // Schedule the proposal to be processed
+            ns3::Simulator::ScheduleNow(&PaxosApp::DoReceivedProposalMessage, this, frame);
+        }
+        else if (isAcceptSignature(signature)) // "ACPT"
+        {
+            // Parse the accept frame
+            std::shared_ptr<AcceptFrame> frame = std::make_shared<AcceptFrame>();
+            packet->RemoveHeader(*frame);
+            NS_LOG_INFO("Accept Frame parsed with Acceptor ID " << frame->GetAcceptorId() 
+                        << ", Proposal ID " << frame->GetProposalId() 
+                        << ", Node ID " << frame->GetNodeId()
+                        << ", Timestamp " << frame->GetTimestamp());
+            // Schedule the proposal to be processed
+            ns3::Simulator::ScheduleNow(&PaxosApp::DoReceivedAcceptMessage, this, frame);
+        }
+        else if (isDecisionSignature(signature)) // "DECI"
+        {
+            // Parse the decision frame
+            std::shared_ptr<DecisionFrame> frame = std::make_shared<DecisionFrame>();
+            packet->RemoveHeader(*frame);
+            // Schedule the proposal to be processed
+            ns3::Simulator::ScheduleNow(&PaxosApp::DoReceivedDecisionMessage, this, frame);
+        }
+        else
+        {
+            NS_LOG_ERROR("Unknown packet signature: " << signature);
+            return; // Unknown packet type, ignore it
+        }
 
-    // For now, just log the packet size
-    NS_LOG_INFO("Packet size: " << packet->GetSize());
+        // For now, just log the packet size
+        NS_LOG_INFO("Packet size: " << packet->GetSize());
+    }
 }
 
 void
-PaxosApp::DoReceivedProposalMessage(ns3::Ptr<ProposalFrame> frame)
+PaxosApp::DoReceivedProposalMessage(std::shared_ptr<ProposalFrame> frame)
 {
-    NS_LOG_INFO("PaxosApp " << m_nodeId << " received a proposal from Proposer ID " << frame->GetProposerId() 
-                << ", Proposal ID " << frame->GetProposalId() 
-                << ", Value " << frame->GetValue() 
-                << ", Timestamp " << frame->GetTimestamp());
-
     // Check if the proposer is the right one
     uint32_t proposerId = frame->GetProposerId();
     if (proposerId != ns3::Simulator::Now().GetMilliSeconds() % m_numNodes)
@@ -224,7 +228,13 @@ PaxosApp::DoReceivedProposalMessage(ns3::Ptr<ProposalFrame> frame)
     // Process the proposal
     NS_LOG_INFO("PaxosApp " << m_nodeId << " processing proposal with ID " << frame->GetProposalId());
 
-    std::shared_ptr<Proposal> proposal = std::make_shared<Proposal>(frame->GetProposerId(), frame->GetProposalId(), frame->GetValue(), frame->GetTimestamp());
+    std::shared_ptr<Proposal> proposal = std::make_shared<Proposal>();
+    proposal->setProposalId(frame->GetProposalId());
+    proposal->setNodeId(frame->GetProposerId());
+    proposal->setValue(frame->GetValue());
+    proposal->setProposeTime(frame->GetTimestamp());
+    proposal->setNumAck(0);
+
     ns3::Simulator::ScheduleNow(&PaxosApp::SendAcceptMessage, this, proposal);
 }
 
@@ -233,19 +243,19 @@ PaxosApp::SendAcceptMessage(std::shared_ptr<Proposal> proposal)
 {
     NS_LOG_INFO("PaxosApp " << m_nodeId << " sending accept message for Proposal ID " << proposal->getProposalId());
 
-    // Create a new packet
-    ns3::Ptr<ns3::Packet> packet = ns3::Packet::Create();
-
-    // TODO: Add failure model to simulate network failures
-    // For now, we will just log the packet creation
-    // Add Signature and Payload Length
-    // For simplicity, we assume the signature is a fixed string "ACPT"
-    ns3::Buffer::Iterator start = packet->Begin();
-    start.WriteU32(0x41435054); // Signature "ACPT"
-    start.WriteU32(24);         // Payload Length
+    // Create Packet with signature
+    // Signature: "ACPT"
+    uint8_t signature[4] = {0x41, 0x43, 0x50, 0x54}; // "ACPT"
+    ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>(signature, sizeof(signature));
 
     // Add the accept frame
-    ns3::Ptr<ns3::Header> header = Create<AcceptFrame>(m_nodeId, proposal->getProposalId(), proposal->getNodeId(), proposal->getProposeTime());
+    std::shared_ptr<AcceptFrame> header = std::make_shared<AcceptFrame>(
+        m_nodeId, // Acceptor ID
+        proposal->getProposalId(), // Proposal ID
+        proposal->getNodeId(), // Node ID
+        ns3::Simulator::Now() // Timestamp
+    );
+    // Add the header to the packet
     packet->AddHeader(*header);
     NS_LOG_INFO("Accept Frame created with Acceptor ID " << m_nodeId 
                 << ", Proposal ID " << proposal->getProposalId() 
@@ -261,7 +271,7 @@ PaxosApp::SendAcceptMessage(std::shared_ptr<Proposal> proposal)
 }
 
 void
-PaxosApp::DoReceivedAcceptMessage(ns3::Ptr<AcceptFrame> frame)
+PaxosApp::DoReceivedAcceptMessage(std::shared_ptr<AcceptFrame> frame)
 {
     NS_LOG_INFO("PaxosApp " << m_nodeId << " received an accept message from Acceptor ID " << frame->GetAcceptorId() 
                 << ", Proposal ID " << frame->GetProposalId() 
@@ -291,16 +301,14 @@ PaxosApp::DoReceivedAcceptMessage(ns3::Ptr<AcceptFrame> frame)
     std::shared_ptr<Proposal> proposal = it->second;
 
     // Increment the accept count
-    proposal->incrementAcceptCount();
+    proposal->incrementNumAck();
 
     // If the proposal has enough accepts, send a decision message
-    if (proposal->getAcceptCount() >= (m_numNodes / 2))
+    if (proposal->getNumAck() >= (m_numNodes / 2))
     {
         NS_LOG_INFO("PaxosApp " << m_nodeId << " sending decision message for Proposal ID " << proposal->getProposalId());
 
-        // Create a decision frame and send it to all nodes
-        ns3::Ptr<DecisionFrame> decisionFrame = Create<DecisionFrame>(proposal->getProposalId(), proposal->getValue(), proposal->getProposeTime());
-        SendDecisionMessage(ns3::InetSocketAddress(ns3::Ipv4Address::GetBroadcast(), 10000), decisionFrame);
+        SendDecisionMessage(proposal);
 
         // Remove the proposal from the map
         m_proposals.erase(proposalId);
@@ -316,17 +324,19 @@ PaxosApp::SendDecisionMessage(std::shared_ptr<Proposal> proposal)
 {
     NS_LOG_INFO("PaxosApp " << m_nodeId << " sending decision message for Proposal ID " << proposal->getProposalId());
 
-    // Create a new packet
-    ns3::Ptr<ns3::Packet> packet = ns3::Packet::Create();
-
-    // Add Signature and Payload Length
-    // For simplicity, we assume the signature is a fixed string "DECI"
-    ns3::Buffer::Iterator start = packet->Begin();
-    start.WriteU32(0x44454349); // Signature "DECI"
-    start.WriteU32(24);         // Payload Length
+    // Create Packet with signature
+    // Signature: "DECI"
+    uint8_t signature[4] = {0x44, 0x45, 0x43, 0x49}; // "DECI"
+    ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>(signature, sizeof(signature));
 
     // Add the decision frame
-    ns3::Ptr<ns3::Header> header = Create<DecisionFrame>(m_nodeId, proposal->getProposalId(), proposal->getValue(), proposal->getProposeTime());
+    std::shared_ptr<DecisionFrame> header = std::make_shared<DecisionFrame>(
+        m_nodeId,
+        proposal->getProposalId(),
+        proposal->getValue(),
+        ns3::Simulator::Now()
+    );
+
     packet->AddHeader(*header);
     NS_LOG_INFO("Decision Frame created with Proposer ID " << m_nodeId 
                 << ", Proposal ID " << proposal->getProposalId() 
@@ -347,19 +357,25 @@ PaxosApp::SendDecisionMessage(std::shared_ptr<Proposal> proposal)
 }
 
 void
-PaxosApp::DoReceivedDecisionMessage(ns3::Ptr<DecisionFrame> frame)
+PaxosApp::DoReceivedDecisionMessage(std::shared_ptr<DecisionFrame> frame)
 {
-    NS_LOG_INFO("PaxosApp " << m_nodeId << " received a decision message from Decision ID " << frame->GetDecisionId() 
-                << ", Value " << frame->GetValue() 
-                << ", Timestamp " << frame->GetTimestamp());
-
-    uint64_t proposalId = frame->GetDecisionId();
+    uint64_t proposalId = frame->GetProposalId();
     uint32_t value = frame->GetValue();
 
     ns3::Time timestamp = frame->GetTimestamp();
 
     // Add the decision to the decided proposals queue
-    std::shared_ptr<Proposal> proposal = std::make_shared<Proposal>(m_nodeId, proposalId, value, timestamp);
+    std::shared_ptr<Proposal> proposal = std::make_shared<Proposal>();
+    proposal->setProposalId(proposalId);
+    proposal->setValue(value);
+    proposal->setProposeTime(timestamp);
+    proposal->setNodeId(m_nodeId); // Set the node ID to the current node
+    proposal->setNumAck(0); // Reset the number of acknowledgments
+    NS_LOG_INFO("PaxosApp " << m_nodeId << " received decision for Proposal ID " << proposalId 
+                << " with Value " << value 
+                << " at Timestamp " << timestamp);
+    // Add the proposal to the decided proposals queue
+    // TODO: Set the maximum size of the queue if needed
     m_decidedProposals.push(proposal);
 
     // Delete the proposal from the proposals map
@@ -381,30 +397,17 @@ PaxosApp::DoReceivedDecisionMessage(ns3::Ptr<DecisionFrame> frame)
 }
 
 void
-PaxosApp::SendMessage(const Address& to, Ptr<Packet> packet)
-{
-    NS_LOG_INFO("PaxosApp " << m_nodeId << " sending message to " << InetSocketAddress::ConvertFrom(to).GetIpv4());
-    // Send the packet to the specified address
-    ns3::Ptr<ns3::Socket> socket = ns3::Socket::CreateSocket(GetNode(), ns3::UdpSocketFactory::GetTypeId());
-    socket->SendTo(packet, 0, to);
-}
-
-void
 PaxosApp::SendProposeToAll(std::shared_ptr<Proposal> proposal)
 {
-    // Create a new packet
-    ns3::Ptr<ns3::Packet> packet = ns3::Packet::Create();
-
-    // Add Signature and Payload Length
-    // For simplicity, we assume the signature is a fixed string "PROP"
-    ns3::Buffer::Iterator start = packet->Begin();
-    start.WriteU32(0x50524F43); // Signature "PROP"
-    start.WriteU32(24);         // Payload Length
+    // Create Packet with signature
+    // Signature: "PROP"
+    uint8_t signature[4] = {0x50, 0x52, 0x4F, 0x50}; // "PROP"
+    ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>(signature, sizeof(signature));
 
     // Add the proposal frame
-    ns3::Ptr<ns3::Header> header = Create<ProposalFrame>(proposal->getProposerId(), proposal->getProposalId(), proposal->getValue(), proposal->getProposeTime());
-    packet->AddHeader(*header);
-    NS_LOG_INFO("Proposal Frame created with Proposer ID " << proposal->getProposerId() 
+    ProposalFrame proposalFrame(proposal->getNodeId(), proposal->getProposalId(), proposal->getValue(), proposal->getProposeTime());
+    packet->AddHeader(proposalFrame);
+    NS_LOG_INFO("Proposal Frame created with Proposer ID " << proposal->getNodeId()
                 << ", Proposal ID " << proposal->getProposalId() 
                 << ", Value " << proposal->getValue() 
                 << ", Timestamp " << proposal->getProposeTime());
@@ -420,7 +423,7 @@ PaxosApp::SendProposeToAll(std::shared_ptr<Proposal> proposal)
 
         m_sendSocket->SendTo(packet, 0, to);
     }
-    NS_LOG_INFO("Proposal with ID " << proposal->getProposalId() << " sent to all nodes by Node " << m_selfID);
+    NS_LOG_INFO("Proposal with ID " << proposal->getProposalId() << " sent to all nodes by Node " << m_nodeId);
 }
 
 
