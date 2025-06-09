@@ -1,0 +1,10 @@
+SynchronousPaxos Configuration:
+# This file contains the configuration for the Synchronous Paxos algorithm.
+PaxosClient:
+    Request:
+        GeneratingPattern:
+            Type    : "Periodic"
+            Period  :  10 # in microseconds
+        SendingPattern:
+            Type    : "RoundRobin"
+

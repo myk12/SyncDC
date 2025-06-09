@@ -8,9 +8,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Add source files
 set(SOURCE_FILES
     paxos-main.cc
-    paxos-app.cc
-    paxos-frame.cc
     paxos-common.cc
+    paxos-frame.cc
+    paxos-app.cc
+    paxos-app-client.cc
+    paxos-app-server-listener.cc
+    paxos-app-server-proposer.cc
 )
 
 # Add Headers
@@ -18,6 +21,7 @@ set(HEADER_FILES
     paxos-app.h
     paxos-frame.h
     paxos-common.h
+    paxos-app-client.h
 )
 
 # Specify executable

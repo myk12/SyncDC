@@ -38,19 +38,24 @@ public:
     void CreateSendSocket();
     void CreateRecvSocket();
 
-    void StartAcceptorThread();
-    void StartProposerThread();
+    // Listener Functions
+    void ReceiveRequest(ns3::Ptr<ns3::Socket> socket);
+    void StartListenerThread();
 
+    // Proposer Functions
+    void StartProposerThread();
+    int32_t DoPropose(std::shared_ptr<Proposal> proposal);
+
+    void StartAcceptorThread();
     void ReceiveMessage(ns3::Ptr<ns3::Socket> socket);
-    void SendProposeToAll(std::shared_ptr<Proposal> proposal);
-    //void SendProposeMessage(const ns3::Address& to, ns3::Ptr<ns3::Packet> packet);
-    void SendAcceptMessage(std::shared_ptr<Proposal> proposal);
-    void SendDecisionMessage(std::shared_ptr<Proposal> proposal);
+    void SendAcceptMessage(PaxosFrame frame);
+    void SendDecisionMessage(PaxosFrame frame);
 
     // Function to handle incoming messages
-    void DoReceivedProposalMessage(std::shared_ptr<ProposalFrame> frame);
-    void DoReceivedAcceptMessage(std::shared_ptr<AcceptFrame> frame);
-    void DoReceivedDecisionMessage(std::shared_ptr<DecisionFrame> frame);
+    void DoReceivedProposalMessage(PaxosFrame frame);
+    void DoReceivedAcceptMessage(PaxosFrame frame);
+    void DoReceivedDecisionMessage(PaxosFrame frame);
+
 
 private:
     uint32_t m_nodeId;  // Node ID of this node
@@ -64,7 +69,13 @@ private:
     std::unordered_map<uint64_t, std::shared_ptr<Proposal>> m_proposals; // Map of proposals
     uint64_t m_nextProposalId; // Next proposal ID to be used
     std::queue<std::shared_ptr<Proposal>> m_abandonedProposals; // Queue of abandoned proposals
+    std::queue<std::shared_ptr<Proposal>> m_acceptedProposals; // Queue of accepted proposals
     std::queue<std::shared_ptr<Proposal>> m_decidedProposals; // Queue of decided proposals
+
+
+    // Listener thread
+    ns3::Ptr<ns3::Socket> m_listenerSocket; // UDP socket for listening for messages
+    std::queue<std::shared_ptr<Proposal>> m_waitingProposals; // Queue of waiting proposals
 };
 
 #endif // PAXOS_APP_HH

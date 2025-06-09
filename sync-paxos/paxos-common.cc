@@ -76,3 +76,25 @@ bool isDecisionSignature(uint8_t *data) {
 }
 
 // Implementation of Proposal class methods
+
+// Set log formatter
+
+// Self defined log format
+void MyLogFormatter (std::ostream &os, ns3::Ptr<const ns3::Object> object, const ns3::LogLevel logLevel, const char *file, uint32_t line, const char *cond, const std::string &msg)
+{
+    // Get current time
+    ns3::Time now = ns3::Simulator::Now();
+    uint32_t objectId = 0;
+
+    os << "[" << now.GetMicroSeconds() << "us]";
+    // If object is null, you can print a special value or not print anything
+    if (objectId != 0)
+    {
+        os << "[Node " << objectId << "]";
+    }
+    else if (object != nullptr)
+    {
+        os << "[" << object->GetTypeId().GetName() << "]";
+    }
+    os << " " << msg << std::endl;
+}

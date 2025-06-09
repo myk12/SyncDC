@@ -8,6 +8,7 @@
 #include "paxos-app.h"
 #include "paxos-frame.h"
 #include "paxos-common.h"    
+#include "paxos-app-client.h"
 
 // Define Log Component
 
@@ -19,18 +20,20 @@ NS_LOG_COMPONENT_DEFINE("SyncPaxos");
 
 int main(int argc, char *argv[]) {
 
+    ns3::LogComponentEnable("PaxosAppClient", ns3::LOG_DEBUG);
     ns3::LogComponentEnable("SyncPaxos", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosApp", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosFrame", ns3::LOG_INFO);
+    ns3::LogComponentEnable("PaxosAppServerListener", ns3::LOG_INFO);
+    ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_INFO);
     ns3::CommandLine cmd;
     cmd.Parse(argc, argv);
 
     NS_LOG_INFO("Starting SyncPaxos Simulation");
 
-    // Create a 3 nodes network with CSMA network
-
+    // Create 4 nodes, one for client and 3 for servers
     ns3::NodeContainer nodes;
-    nodes.Create(3);
+    nodes.Create(4);
 
     // Create 
     ns3::CsmaHelper csma;
@@ -50,25 +53,37 @@ int main(int argc, char *argv[]) {
     ns3::Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
     NS_LOG_INFO("IP addresses assigned to devices");
 
-    // Set up a UDP echo server on node 1 and a UDP echo client on node 0
-    NS_LOG_INFO("Setting up UDP echo server and client");
     ns3::Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-
-    // Install the Paxos application on each node
-    ns3::ApplicationContainer apps;
+    
+    // Install the Paxos application on node 0,1,2
+    ns3::ApplicationContainer serverApps;
     NodeInfoList nodeInfoList;
-    for (uint32_t i = 0; i < nodes.GetN(); ++i) {
+    // Initialize nodeInfoList
+    for (uint32_t i = 0; i < nodes.GetN()-1; ++i) {
         ns3::Ptr<ns3::Node> node = nodes.Get(i);
         ns3::Ipv4Address address = interfaces.GetAddress(i);
-        uint16_t port = 10000;
-        nodeInfoList.push_back({i, address, port});
-
-        ns3::Ptr<PaxosApp> paxosApp = ns3::CreateObject<PaxosApp>(i, nodeInfoList);
-        node->AddApplication(paxosApp);
-        paxosApp->SetStartTime(ns3::Seconds(1.0));
-        paxosApp->SetStopTime(ns3::Seconds(1.2));
-        apps.Add(paxosApp);
+        nodeInfoList.push_back({i, address, PAXOS_PORT, SERVER_PORT});
     }
+
+    // Create the Paxos application on node 0,1,2
+    for (uint32_t i = 0; i < nodes.GetN()-1; ++i) {
+        ns3::Ptr<PaxosApp> paxosApp = ns3::CreateObject<PaxosApp>(i, nodeInfoList);
+
+        ns3::Ptr<ns3::Node> node = nodes.Get(i);
+        node->AddApplication(paxosApp);
+        paxosApp->SetStartTime(ns3::Seconds(0));
+        paxosApp->SetStopTime(ns3::Seconds(1.2));
+        serverApps.Add(paxosApp);
+    }
+
+    // Install the Client application on node 3 (client)
+    ns3::ApplicationContainer clientApps;
+    ns3::Ptr<ns3::Node> clientNode = nodes.Get(3);
+    ns3::Ptr<PaxosAppClient> clientApp = ns3::CreateObject<PaxosAppClient>(nodeInfoList);
+    clientNode->AddApplication(clientApp);
+    clientApp->SetStartTime(ns3::Seconds(1.0));
+    clientApp->SetStopTime(ns3::Seconds(1.2));
+    clientApps.Add(clientApp);
 
     ns3::Simulator::Run();
     ns3::Simulator::Destroy();

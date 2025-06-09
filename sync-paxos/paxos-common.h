@@ -10,11 +10,15 @@
 
 #include <vector>
 
+#define PAXOS_PORT (9000)   // This port is used for Paxos protocol
+#define SERVER_PORT (9001)  // This port is used for accept client reqeusts
+
 // Node ID and address
 typedef struct {
     uint32_t nodeId;
     ns3::Ipv4Address address;
-    uint16_t port;
+    uint16_t paxosPort;
+    uint16_t serverPort;
 } NodeInfo;
 
 typedef std::vector<NodeInfo> NodeInfoList;
