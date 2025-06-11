@@ -1,0 +1,109 @@
+#include "paxos-topology-clos.h"
+
+NS_LOG_COMPONENT_DEFINE("PaxosTopologyClos");
+
+PaxosTopologyClos::PaxosTopologyClos(uint32_t numSpines,
+                                     uint32_t numLeaves,
+                                     uint32_t numHostsPerLeaf,
+                                     std::string bandwidthLeaf2Spine,
+                                     std::string delayLeaf2Spine,
+                                     std::string bandwidthHost2Leaf,
+                                     std::string delayHost2Leaf) {
+
+
+
+    NS_LOG_INFO("Creating Clos topology with " << numSpines << " spines, " << numLeaves << " leaves, " << numHostsPerLeaf << " hosts per leaf, " << bandwidthLeaf2Spine << " bandwidth leaf to spine, " << delayLeaf2Spine << " delay leaf to spine, " << bandwidthHost2Leaf << " bandwidth host to leaf, " << delayHost2Leaf << " delay host to leaf");
+
+    // Create spine nodes
+    m_spineNodes.Create(numSpines);
+
+    // Create leaf nodes
+    m_leafNodes.Create(numLeaves);
+
+    // Create host nodes
+    for (uint32_t i = 0; i < numLeaves; i++) {
+        ns3::NodeContainer hostNodes;
+        hostNodes.Create(numHostsPerLeaf);
+        m_hostNodes.push_back(hostNodes);
+    }
+
+    // Install Network Stacks
+    NS_LOG_INFO("Installing network stacks");
+    ns3::InternetStackHelper internet;
+    internet.Install(m_spineNodes);
+    internet.Install(m_leafNodes);
+    for (auto it = m_hostNodes.begin(); it != m_hostNodes.end(); it++) {
+        internet.Install(*it);
+    }
+
+    // Create point-to-point links between spine and leaf
+    ns3::PointToPointHelper p2p;
+    p2p.SetDeviceAttribute("DataRate", ns3::StringValue(bandwidthLeaf2Spine));
+    p2p.SetChannelAttribute("Delay", ns3::StringValue(delayLeaf2Spine));
+
+    for (uint32_t i = 0; i < numSpines; i++) {
+        std::vector<ns3::NetDeviceContainer> spineLeafLinksMatrixRow;
+        std::vector<ns3::Ipv4InterfaceContainer> spineLeafInterfaceMatrixRow;
+        for (uint32_t j = 0; j < numLeaves; j++) {
+            // Install P2P link between spine and leaf
+            ns3::NetDeviceContainer spineLeafLink = p2p.Install(m_spineNodes.Get(i), m_leafNodes.Get(j));
+            spineLeafLinksMatrixRow.push_back(spineLeafLink);
+
+            // Assign IP addresses to the devices
+            ns3::Ipv4AddressHelper ipv4;
+            std::ostringstream subnet;
+            subnet << "10." << i << "." << j << ".0";
+            ipv4.SetBase(subnet.str().c_str(), "255.255.255.0");
+            ns3::Ipv4InterfaceContainer spineLeafInterface = ipv4.Assign(spineLeafLink);
+            spineLeafInterfaceMatrixRow.push_back(spineLeafInterface);
+        }
+        m_spineLeafLinksMatrix.push_back(spineLeafLinksMatrixRow);
+        m_spineLeafInterfaceMatrix.push_back(spineLeafInterfaceMatrixRow);
+    }
+
+    // Create point-to-point links between leaf and host
+    ns3::PointToPointHelper p2pHost;
+    p2pHost.SetDeviceAttribute("DataRate", ns3::StringValue(bandwidthHost2Leaf));
+    p2pHost.SetChannelAttribute("Delay", ns3::StringValue(delayHost2Leaf));
+
+    for (uint32_t i = 0; i < numLeaves; i++) {
+        std::vector<ns3::NetDeviceContainer> leafHostLinksMatrixRow;
+        std::vector<ns3::Ipv4InterfaceContainer> leafHostInterfaceMatrixRow;
+        for (uint32_t j = 0; j < numHostsPerLeaf; j++) {
+            // Install P2P link between leaf and host
+            ns3::NetDeviceContainer leafHostLink = p2pHost.Install(m_leafNodes.Get(i), m_hostNodes[i].Get(j));
+            leafHostLinksMatrixRow.push_back(leafHostLink);
+
+            // Assign IP addresses to the devices
+            ns3::Ipv4AddressHelper ipv4;
+            std::ostringstream subnet;
+            subnet << "20." << i << "." << j << ".0";
+            ipv4.SetBase(subnet.str().c_str(), "255.255.255.0");
+            ns3::Ipv4InterfaceContainer leafHostInterface = ipv4.Assign(leafHostLink);
+            leafHostInterfaceMatrixRow.push_back(leafHostInterface);
+        }
+
+        m_hostLeafLinksMatrix.push_back(leafHostLinksMatrixRow);
+        m_hostLeafInterfaceMatrix.push_back(leafHostInterfaceMatrixRow);
+    }
+
+    // Log the topology visually
+    NS_LOG_INFO("Clos topology created");
+    NS_LOG_INFO("Spine nodes:");
+    for (uint32_t i = 0; i < numSpines; i++) {
+        NS_LOG_INFO("   ---- Spine node " << i << ": " << m_spineNodes.Get(i)->GetId());
+        // Log the connected leafnode
+        for (uint32_t j = 0; j < numLeaves; j++) {
+            NS_LOG_INFO("       |--- Leaf node " << j << ": " << m_spineLeafInterfaceMatrix[i][j].GetAddress(1));
+            for (uint32_t k = 0; k < numHostsPerLeaf; k++) {
+                NS_LOG_INFO("       |       |--- Host node " << k << ": " << m_hostLeafInterfaceMatrix[j][k].GetAddress(1));
+            }
+        }
+    }
+
+}
+
+PaxosTopologyClos::~PaxosTopologyClos() {
+}
+
+

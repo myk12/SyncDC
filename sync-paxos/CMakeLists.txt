@@ -14,6 +14,7 @@ set(SOURCE_FILES
     paxos-app-client.cc
     paxos-app-server-listener.cc
     paxos-app-server-proposer.cc
+    paxos-topology-clos.cc
 )
 
 # Add Headers
@@ -22,6 +23,7 @@ set(HEADER_FILES
     paxos-frame.h
     paxos-common.h
     paxos-app-client.h
+    paxos-topology-clos.h
 )
 
 # Specify executable
