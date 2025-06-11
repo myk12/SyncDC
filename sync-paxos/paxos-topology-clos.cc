@@ -101,9 +101,93 @@ PaxosTopologyClos::PaxosTopologyClos(uint32_t numSpines,
         }
     }
 
+    // Populate the Routing table
+    ns3::Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+
 }
 
 PaxosTopologyClos::~PaxosTopologyClos() {
 }
 
+ns3::Ipv4Address PaxosTopologyClos::GetSpineAddress(uint32_t spineId) {
+    return m_spineLeafInterfaceMatrix[spineId][0].GetAddress(1);
+}
 
+ns3::Ipv4Address PaxosTopologyClos::GetLeafAddress(uint32_t spineId, uint32_t leafId) {
+    return m_spineLeafInterfaceMatrix[spineId][leafId].GetAddress(1);
+}
+
+ns3::Ipv4Address PaxosTopologyClos::GetHostAddress(uint32_t leafId, uint32_t hostId) {
+    return m_hostLeafInterfaceMatrix[leafId][hostId].GetAddress(1);
+}
+
+int32_t
+PaxosTopologyClos::InitPaxosServerCluster(std::vector<std::pair<uint32_t, uint32_t>> hostIdList) {
+    NS_LOG_INFO("Initializing Paxos servers");
+    int32_t ret = 0;
+
+    // Collect all hosts Info
+    for (uint32_t i=0; i<hostIdList.size(); i++) {
+        NS_LOG_INFO("   ---- Host " << hostIdList[i].first << " on leaf " << hostIdList[i].second);
+        u_int32_t leafId = hostIdList[i].first;
+        u_int32_t hostId = hostIdList[i].second;
+
+        // Get the Ip address of the host
+        ns3::Ipv4Address hostAddress = GetHostAddress(leafId, hostId);
+
+        // Create a node info
+        NodeInfo nodeInfo;
+        nodeInfo.serverId   = i;
+        nodeInfo.address    = hostAddress;
+        nodeInfo.serverPort = SERVER_PORT;
+        nodeInfo.paxosPort  = PAXOS_PORT;
+
+        m_serverInfoList.push_back(nodeInfo);
+    }
+
+    for (int32_t i=0; i<hostIdList.size(); i++) {
+        NS_LOG_INFO("   ---- Creating Paxos server " << i << " on host " << m_serverInfoList[i].address << "" );
+        ns3::Ptr<ns3::Node> node = m_hostNodes[hostIdList[i].first].Get(hostIdList[i].second);
+
+        // Create PaxosAppServer and Install on this node
+        ns3::Ptr<PaxosAppServer> paxosAppServer = ns3::CreateObject<PaxosAppServer>(i, m_serverInfoList);
+        m_paxosAppServerContainer.Add(paxosAppServer);
+        node->AddApplication(paxosAppServer);
+    }
+
+    return ret;
+}
+
+int32_t
+PaxosTopologyClos::InitPaxosClientCluster(std::vector<uint32_t> spineIdList) {
+    NS_LOG_INFO("Initializing Paxos clients");
+    int32_t ret = 0;
+
+    for (uint32_t i=0; i<spineIdList.size(); i++) {
+        NS_LOG_INFO("   ---- Creating Paxos client " << i << " on spine " << spineIdList[i] );
+        ns3::Ptr<ns3::Node> node = m_spineNodes.Get(spineIdList[i]);
+
+        // Create PaxosAppClient and Install on this node
+        ns3::Ptr<PaxosAppClient> paxosAppClient = ns3::CreateObject<PaxosAppClient>(m_serverInfoList);
+        m_paxosAppClientContainer.Add(paxosAppClient);
+        node->AddApplication(paxosAppClient);
+    }
+
+    return ret;
+}
+
+void
+PaxosTopologyClos::SetPaxosServerAppStartStop(ns3::Time start, ns3::Time end) {
+    for (auto it = m_paxosAppServerContainer.Begin(); it != m_paxosAppServerContainer.End(); it++) {
+        (*it)->SetStartTime(start);
+        (*it)->SetStopTime(end);
+    }
+}
+
+void
+PaxosTopologyClos::SetPaxosClientAppStartStop(ns3::Time start, ns3::Time end) {
+    for (auto it = m_paxosAppClientContainer.Begin(); it != m_paxosAppClientContainer.End(); it++) {
+        (*it)->SetStartTime(start);
+        (*it)->SetStopTime(end);
+    }
+}

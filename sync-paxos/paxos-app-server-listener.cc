@@ -15,12 +15,15 @@ void PaxosAppServer::StartListenerThread()
     }
 
     // Get Server Listening Port
-    ns3::Address local = ns3::InetSocketAddress(ns3::Ipv4Address::GetAny(), m_nodes[m_nodeId].serverPort);
+    ns3::Ipv4Address addr = ns3::Ipv4Address::GetAny();
+    uint16_t port = m_nodes[m_nodeId].serverPort;
+    ns3::Address local = ns3::InetSocketAddress(addr, port);
+    NS_LOG_INFO("PaxosAppServer " << m_nodeId << " listening at " << addr << ":" << port);
     if (m_listenerSocket->Bind(local) == -1)
     {
         NS_FATAL_ERROR("Failed to bind socket");
     }
-    NS_LOG_INFO("PaxosAppServer " << m_nodeId << " listening on port " << m_nodes[m_nodeId].serverPort);
+    NS_LOG_INFO("PaxosAppServer " << m_nodeId << " listening at " << local);
 
     // Set the receive callback
     m_listenerSocket->SetRecvCallback(MakeCallback(&PaxosAppServer::ReceiveRequest, this));

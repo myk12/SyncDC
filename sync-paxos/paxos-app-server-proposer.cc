@@ -85,7 +85,7 @@ PaxosAppServer::DoPropose(std::shared_ptr<Proposal> proposal)
     // Send the proposal to all nodes
     for (auto node : m_nodes)
     {
-        if (node.nodeId == m_nodeId)
+        if (node.serverId == m_nodeId)
         {
             // Do not send the proposal to itself
             continue;

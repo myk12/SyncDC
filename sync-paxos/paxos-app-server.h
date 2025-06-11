@@ -32,7 +32,7 @@ public:
     static ns3::TypeId GetTypeId(void);
     virtual void StartApplication(void);
     virtual void StopApplication(void);
-    void SetNodeId(uint32_t nodeId);
+    void SetNodeId(uint32_t serverId);
     uint32_t GetNodeId() const;
 
     void CreateSendSocket();

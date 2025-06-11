@@ -15,7 +15,7 @@
 
 // Node ID and address
 typedef struct {
-    uint32_t nodeId;
+    uint32_t serverId;
     ns3::Ipv4Address address;
     uint16_t paxosPort;
     uint16_t serverPort;
@@ -26,11 +26,11 @@ typedef std::vector<NodeInfo> NodeInfoList;
 class Proposal {
 public:
     Proposal();
-    Proposal(uint64_t proposalId, uint32_t nodeId, ns3::Time proposeTime, ns3::Time acceptTime);
+    Proposal(uint64_t proposalId, uint32_t serverId, ns3::Time proposeTime, ns3::Time acceptTime);
     ~Proposal();
 
     void setProposalId(uint64_t proposalId);
-    void setNodeId(uint32_t nodeId);
+    void setNodeId(uint32_t serverId);
     uint64_t getProposalId();
     uint32_t getNodeId();
     void setProposeTime(ns3::Time proposeTime);

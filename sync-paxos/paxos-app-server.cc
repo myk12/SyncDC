@@ -60,9 +60,9 @@ PaxosAppServer::StopApplication(void)
 }
 
 void
-PaxosAppServer::SetNodeId(uint32_t nodeId)
+PaxosAppServer::SetNodeId(uint32_t serverId)
 {
-    m_nodeId = nodeId;
+    m_nodeId = serverId;
 }
 
 uint32_t
@@ -274,7 +274,7 @@ PaxosAppServer::SendDecisionMessage(PaxosFrame frame)
     // Send the decision message to all nodes
     for (auto node : m_nodes)
     {
-        if (node.nodeId == m_nodeId)
+        if (node.serverId == m_nodeId)
         {
             // Do not send the decision to itself
             continue;

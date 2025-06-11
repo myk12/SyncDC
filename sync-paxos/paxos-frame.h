@@ -170,7 +170,7 @@ public:
     void Serialize(ns3::Buffer::Iterator start) const override;
     uint32_t Deserialize(ns3::Buffer::Iterator start) override;
 
-    AcceptFrame(uint32_t acceptorId, uint64_t proposalId, uint32_t nodeId, ns3::Time timestamp);
+    AcceptFrame(uint32_t acceptorId, uint64_t proposalId, uint32_t serverId, ns3::Time timestamp);
     ~AcceptFrame();
     
     // Getters for the accept frame fields

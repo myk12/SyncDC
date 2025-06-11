@@ -32,21 +32,55 @@ int main(int argc, char *argv[]) {
     cmd.Parse(argc, argv);
 
     NS_LOG_INFO("Starting SyncPaxos Simulation");
+    uint32_t numSpine = 3;
+    uint32_t numLeaf = 5;
+    uint32_t numHostsPerLeaf = 5;
+    std::string bandwidthLeaf2Spine = "1Gbps";
+    std::string delayLeaf2Spine = "10ms";
+    std::string bandwidthHost2Leaf = "1Gbps";
+    std::string delayHost2Leaf = "10ms";
 
     // Define the topology
+    NS_LOG_INFO("Creating Clos topology with " << numSpine << " spines, " << numLeaf << " leaves, " << numHostsPerLeaf << " hosts per leaf, " << bandwidthLeaf2Spine << " bandwidth leaf to spine, " << delayLeaf2Spine << " delay leaf to spine, " << bandwidthHost2Leaf << " bandwidth host to leaf, " << delayHost2Leaf << " delay host to leaf");
     PaxosTopologyClos topology(
-        3,  // Number of Spines
-        5,  // Number of Leaves
-        5,  // Number of Hosts per Leaf
-        "1Gbps", // Bandwidth Leaf to Spine
-        "10ms", // Delay Leaf to Spine
-        "1Gbps", // Bandwidth Host to Leaf  
-        "10ms"  // Delay Host to Leaf
-    );
+        numSpine,
+        numLeaf,
+        numHostsPerLeaf,
+        bandwidthLeaf2Spine,
+        delayLeaf2Spine,
+        bandwidthHost2Leaf,
+        delayHost2Leaf);
 
-    // Create the Apps
+    // Init Paxos Server Cluster
+    NS_LOG_INFO("Init Paxos Server Cluster");
+    std::vector<std::pair<uint32_t, uint32_t>> hostIdList;
+    for (uint32_t i = 0; i < numLeaf; i++) {
+        hostIdList.push_back(std::make_pair(i, 0));
+    }
 
+    int32_t ret = topology.InitPaxosServerCluster(hostIdList);
+    if (ret != 0) {
+        NS_LOG_ERROR("Init Paxos Server Cluster failed");
+        return -1;
+    }
 
+    // Init Paxos Client Cluster
+    NS_LOG_INFO("Init Paxos Client Cluster");
+    std::vector<uint32_t> spineIdList;
+    spineIdList.push_back(numSpine/2);
+    ret = topology.InitPaxosClientCluster(spineIdList);
+    if (ret != 0) {
+        NS_LOG_ERROR("Init Paxos Client Cluster failed");
+        return -1;
+    }
+
+    // Set Paxos Server App Start Stop
+    ns3::Time start = ns3::Seconds(1.0);
+    ns3::Time end = ns3::Seconds(1.2);
+    topology.SetPaxosServerAppStartStop(start, end);
+    topology.SetPaxosClientAppStartStop(start, end);
+
+    // Run the simulation
     ns3::Simulator::Run();
     ns3::Simulator::Destroy();
     return 0;
