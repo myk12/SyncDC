@@ -5,7 +5,7 @@
 #include "ns3/csma-module.h"
 #include "ns3/applications-module.h"
 
-#include "paxos-app.h"
+#include "paxos-app-server.h"
 #include "paxos-frame.h"
 #include "paxos-common.h"    
 #include "paxos-app-client.h"
@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 
     ns3::LogComponentEnable("PaxosAppClient", ns3::LOG_DEBUG);
     ns3::LogComponentEnable("SyncPaxos", ns3::LOG_INFO);
-    ns3::LogComponentEnable("PaxosApp", ns3::LOG_INFO);
+    ns3::LogComponentEnable("PaxosAppServer", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosFrame", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosAppServerListener", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_INFO);
@@ -43,6 +43,9 @@ int main(int argc, char *argv[]) {
         "1Gbps", // Bandwidth Host to Leaf  
         "10ms"  // Delay Host to Leaf
     );
+
+    // Create the Apps
+
 
     ns3::Simulator::Run();
     ns3::Simulator::Destroy();

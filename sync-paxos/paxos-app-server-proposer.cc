@@ -1,9 +1,9 @@
-#include "paxos-app.h"
+#include "paxos-app-server.h"
 
 NS_LOG_COMPONENT_DEFINE("PaxosAppServerProposer");
 
 void
-PaxosApp::StartProposerThread()
+PaxosAppServer::StartProposerThread()
 {
     // TODO: Implement Proposer Thread logic
     //NS_LOG_DEBUG("Starting Proposer Thread for Node " << m_nodeId);          
@@ -50,12 +50,12 @@ PaxosApp::StartProposerThread()
     }
 
     // Schedule the next proposer thread to run after a certain interval
-    ns3::Simulator::Schedule(ns3::MicroSeconds(10), &PaxosApp::StartProposerThread, this);
+    ns3::Simulator::Schedule(ns3::MicroSeconds(10), &PaxosAppServer::StartProposerThread, this);
 
 }
 
 int32_t
-PaxosApp::DoPropose(std::shared_ptr<Proposal> proposal)
+PaxosAppServer::DoPropose(std::shared_ptr<Proposal> proposal)
 {
     NS_LOG_INFO("Node " << m_nodeId << " is proposing for Proposal ID " << proposal->getProposalId());
     // fullfill the proposal

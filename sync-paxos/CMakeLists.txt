@@ -10,7 +10,7 @@ set(SOURCE_FILES
     paxos-main.cc
     paxos-common.cc
     paxos-frame.cc
-    paxos-app.cc
+    paxos-app-server.cc
     paxos-app-client.cc
     paxos-app-server-listener.cc
     paxos-app-server-proposer.cc
@@ -19,7 +19,7 @@ set(SOURCE_FILES
 
 # Add Headers
 set(HEADER_FILES
-    paxos-app.h
+    paxos-app-server.h
     paxos-frame.h
     paxos-common.h
     paxos-app-client.h

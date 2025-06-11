@@ -1,11 +1,11 @@
 
-#include "paxos-app.h"
+#include "paxos-app-server.h"
 
 NS_LOG_COMPONENT_DEFINE("PaxosAppServerListener");
 
-void PaxosApp::StartListenerThread()
+void PaxosAppServer::StartListenerThread()
 {
-    NS_LOG_INFO("PaxosApp " << m_nodeId << " starting listener thread");
+    NS_LOG_INFO("PaxosAppServer " << m_nodeId << " starting listener thread");
     // Create Listener UDP Socket
     auto tid = ns3::TypeId::LookupByName("ns3::UdpSocketFactory");
     m_listenerSocket = ns3::Socket::CreateSocket(GetNode(), tid);
@@ -20,14 +20,14 @@ void PaxosApp::StartListenerThread()
     {
         NS_FATAL_ERROR("Failed to bind socket");
     }
-    NS_LOG_INFO("PaxosApp " << m_nodeId << " listening on port " << m_nodes[m_nodeId].serverPort);
+    NS_LOG_INFO("PaxosAppServer " << m_nodeId << " listening on port " << m_nodes[m_nodeId].serverPort);
 
     // Set the receive callback
-    m_listenerSocket->SetRecvCallback(MakeCallback(&PaxosApp::ReceiveRequest, this));
+    m_listenerSocket->SetRecvCallback(MakeCallback(&PaxosAppServer::ReceiveRequest, this));
 }
 
 void
-PaxosApp::ReceiveRequest(ns3::Ptr<ns3::Socket> socket)
+PaxosAppServer::ReceiveRequest(ns3::Ptr<ns3::Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
     ns3::Ptr<ns3::Packet> packet;

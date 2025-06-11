@@ -22,12 +22,12 @@
  * It handles message sending and receiving, and manages the state of the Paxos protocol.
  */
 
-class PaxosApp : public ns3::Application
+class PaxosAppServer : public ns3::Application
 {
 public:
-    PaxosApp();  // Default constructor
-    PaxosApp(uint32_t selfId, NodeInfoList nodes);   // Constructor
-    ~PaxosApp();
+    PaxosAppServer();  // Default constructor
+    PaxosAppServer(uint32_t selfId, NodeInfoList nodes);   // Constructor
+    ~PaxosAppServer();
 
     static ns3::TypeId GetTypeId(void);
     virtual void StartApplication(void);
