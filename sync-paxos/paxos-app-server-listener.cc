@@ -30,6 +30,17 @@ void PaxosAppServer::StartListenerThread()
 }
 
 void
+PaxosAppServer::StopListenerThread()
+{
+    NS_LOG_INFO("PaxosAppServer " << m_nodeId << " stopping listener thread");
+    if (m_listenerSocket != nullptr)
+    {
+        m_listenerSocket->Close();
+        m_listenerSocket = nullptr;
+    }
+}
+
+void
 PaxosAppServer::ReceiveRequest(ns3::Ptr<ns3::Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);

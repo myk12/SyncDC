@@ -21,6 +21,8 @@ NS_LOG_COMPONENT_DEFINE("SyncPaxos");
 
 int main(int argc, char *argv[]) {
 
+    ns3::LogComponentEnableAll(ns3::LOG_PREFIX_TIME);
+    ns3::LogComponentEnableAll(ns3::LOG_PREFIX_NODE);
     ns3::LogComponentEnable("PaxosAppClient", ns3::LOG_DEBUG);
     ns3::LogComponentEnable("SyncPaxos", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosAppServer", ns3::LOG_INFO);
@@ -28,6 +30,7 @@ int main(int argc, char *argv[]) {
     ns3::LogComponentEnable("PaxosAppServerListener", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosTopologyClos", ns3::LOG_INFO);
+
     ns3::CommandLine cmd;
     cmd.Parse(argc, argv);
 
@@ -36,9 +39,9 @@ int main(int argc, char *argv[]) {
     uint32_t numLeaf = 5;
     uint32_t numHostsPerLeaf = 5;
     std::string bandwidthLeaf2Spine = "1Gbps";
-    std::string delayLeaf2Spine = "10ms";
+    std::string delayLeaf2Spine = "5us";
     std::string bandwidthHost2Leaf = "1Gbps";
-    std::string delayHost2Leaf = "10ms";
+    std::string delayHost2Leaf = "5us";
 
     // Define the topology
     NS_LOG_INFO("Creating Clos topology with " << numSpine << " spines, " << numLeaf << " leaves, " << numHostsPerLeaf << " hosts per leaf, " << bandwidthLeaf2Spine << " bandwidth leaf to spine, " << delayLeaf2Spine << " delay leaf to spine, " << bandwidthHost2Leaf << " bandwidth host to leaf, " << delayHost2Leaf << " delay host to leaf");

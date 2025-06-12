@@ -1,5 +1,6 @@
 SynchronousPaxos Configuration:
 # This file contains the configuration for the Synchronous Paxos algorithm.
+
 PaxosClient:
     Request:
         GeneratingPattern:

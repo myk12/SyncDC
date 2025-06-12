@@ -10,8 +10,26 @@
 
 #include <vector>
 
+// Time Sync Error
+// E1: 10 Nanoseconds   GPS & Atomic Clock
+// E2: 100 Nanoseconds  GPS & Atomic Clock
+// E3: 1000 Nanoseconds or 1 Microsecond
+// E4: 10000 Nanoseconds or 10 Microseconds
+// E5: 100000 Nanoseconds or 100 Microseconds
+#define TIME_SYNC_ERROR (1000) // Nanoseconds
+
+// Message Delay Bound
+// L1: 10,000 Nanoseconds or 10 Microseconds
+// L2: 100,000 Nanoseconds or 100 Microseconds
+// L3: 1,000,000 Nanoseconds or 1 Millisecond
+// L4: 10,000,000 Nanoseconds or 10 Milliseconds
+// L5: 100,000,000 Nanoseconds or 100 Milliseconds
+#define MESSAGE_DELAY_BOUND (100000) // Nanoseconds
+
 #define PAXOS_PORT (9000)   // This port is used for Paxos protocol
 #define SERVER_PORT (9001)  // This port is used for accept client reqeusts
+
+#define LOG_DIR ("data/")
 
 // Node ID and address
 typedef struct {
@@ -50,6 +68,7 @@ private:
 
     ns3::Time m_proposeTime;
     ns3::Time m_acceptTime;   // accept time
+    ns3::Time m_decisionTime;
 
     uint32_t m_value;
     uint32_t m_numAck;

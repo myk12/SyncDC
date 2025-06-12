@@ -65,12 +65,27 @@ void
 PaxosAppClient::StopApplication(void)
 {
     NS_LOG_FUNCTION(this);
+
+    // Close socket and stop the application
+    if (m_socket != nullptr)
+    {
+        m_socket->Close();
+    }
+
+    NS_LOG_INFO("Stopping PaxosAppClient");
 }
 
 void
 PaxosAppClient::SendRequest()
 {
     NS_LOG_FUNCTION(this);
+
+    // Check if the application has already been stopped
+    if (ns3::Simulator::Now() >= m_stopTime) {
+        return;
+    }
+
+
     // log time
     NS_LOG_INFO("Sending Request at " << ns3::Simulator::Now() << " seconds");
     // Generate Request and Send it to Servers

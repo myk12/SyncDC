@@ -41,12 +41,16 @@ public:
     // Listener Functions
     void ReceiveRequest(ns3::Ptr<ns3::Socket> socket);
     void StartListenerThread();
+    void StopListenerThread();
 
     // Proposer Functions
     void StartProposerThread();
-    int32_t DoPropose(std::shared_ptr<Proposal> proposal);
+    void StopProposerThread();
+    int32_t DoPropose();
 
+    // Acceptor Functions
     void StartAcceptorThread();
+    void StopAcceptorThread();
     void ReceiveMessage(ns3::Ptr<ns3::Socket> socket);
     void SendAcceptMessage(PaxosFrame frame);
     void SendDecisionMessage(PaxosFrame frame);
@@ -62,16 +66,18 @@ private:
     uint32_t m_numNodes;    // Number of nodes in the network
     NodeInfoList m_nodes; // List of all nodes in the network }; 
 
+    ns3::Time m_proposePeriod; // Period between proposing
+
     ns3::Ptr<ns3::Socket> m_recvSocket; // UDP socket for receiving messages
     ns3::Ptr<ns3::Socket> m_sendSocket; // UDP socket for sending messages
 
     // proposals
+    ns3::EventId m_proposeEvent; // Event ID for proposing
     std::unordered_map<uint64_t, std::shared_ptr<Proposal>> m_proposals; // Map of proposals
     uint64_t m_nextProposalId; // Next proposal ID to be used
     std::queue<std::shared_ptr<Proposal>> m_abandonedProposals; // Queue of abandoned proposals
     std::queue<std::shared_ptr<Proposal>> m_acceptedProposals; // Queue of accepted proposals
     std::queue<std::shared_ptr<Proposal>> m_decidedProposals; // Queue of decided proposals
-
 
     // Listener thread
     ns3::Ptr<ns3::Socket> m_listenerSocket; // UDP socket for listening for messages

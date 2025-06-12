@@ -1,6 +1,8 @@
 #include "paxos-app-server.h"
 #include "paxos-frame.h"
 
+#include <filesystem>
+
 // define LOG
 NS_LOG_COMPONENT_DEFINE("PaxosAppServer");
 
@@ -39,6 +41,9 @@ PaxosAppServer::StartApplication(void)
     // Create a UDP socket for sending messages
     CreateSendSocket();
 
+    // Calculate the proposal period
+    m_proposePeriod = ns3::NanoSeconds(2*TIME_SYNC_ERROR + MESSAGE_DELAY_BOUND);
+
     // Start Listener Thread
     NS_LOG_INFO("Starting Listener Thread for Node " << m_nodeId);
     ns3::Simulator::ScheduleNow(&PaxosAppServer::StartListenerThread, this);
@@ -56,7 +61,31 @@ PaxosAppServer::StartApplication(void)
 void
 PaxosAppServer::StopApplication(void)
 {
-    // TODO: Implement this method
+    // Log the proposal to file
+    // Write the proposal to file
+    // Log file path : LOG_DIR + "server-" + m_nodeId + "-decision-log.dat"
+    std::string logFilePath = "server-" + std::to_string(m_nodeId) + "-decision-log.dat";
+
+    // Create file if it not exists
+    if (!std::filesystem::exists(logFilePath))
+    {
+        std::ofstream logFile(logFilePath, std::ios::out | std::ios::app);
+        logFile.close();
+    }
+
+    std::ofstream logFile(logFilePath, std::ios::out | std::ios::app);
+    logFile <<"index,proposalId,proposerId,value,acceptTime\n";
+
+    uint64_t length = m_decidedProposals.size();
+    for (uint64_t i=0; i<length; i++)
+    {
+        auto proposal = m_decidedProposals.front();
+        logFile << i << ", " << proposal->getProposalId() << ", " << proposal->getNodeId() << ", " << proposal->getValue() << ", " << proposal->getAcceptTime() << std::endl;
+        i++;
+        m_decidedProposals.pop();
+    }
+
+    logFile.close();
 }
 
 void
@@ -111,7 +140,11 @@ PaxosAppServer::CreateRecvSocket()
 void
 PaxosAppServer::StartAcceptorThread()
 {
-    // 
+}
+
+void
+PaxosAppServer::StopAcceptorThread()
+{
 }
 
 void
