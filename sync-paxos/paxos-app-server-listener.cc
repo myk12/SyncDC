@@ -49,22 +49,34 @@ PaxosAppServer::ReceiveRequest(ns3::Ptr<ns3::Socket> socket)
 
     while ((packet = socket->RecvFrom(from)))
     {
-        NS_LOG_INFO("Received " << packet->GetSize() << " bytes from " << from);
-        // TODO: Process the request
-
+        NS_LOG_INFO("PaxosAppServer " << m_nodeId << " received a request packet");
         RequestFrame requestFrame;
         packet->RemoveHeader(requestFrame);
 
-        // Parse the request frame and push in the queue
-        std::shared_ptr<Proposal> proposal = std::make_shared<Proposal>();
-        // use the timestamp as proposal id
-        ns3::Time timestamp = requestFrame.GetTimestamp();
-        proposal->setProposalId(timestamp.GetNanoSeconds());
-        proposal->setValue(requestFrame.GetValue());
-
-        NS_LOG_INFO("Received proposal " << proposal->getProposalId() << " from " << from);
-
-        // Add to queue
-        m_waitingProposals.push(proposal);
+        // Create Proposal from Request
+        ns3::Simulator::Schedule(ns3::NanoSeconds(10), &PaxosAppServer::CreateProposalFromRequest, this, requestFrame);
     }
+}
+
+void
+PaxosAppServer::CreateProposalFromRequest(RequestFrame requestFrame)
+{
+    std::shared_ptr<Proposal> proposal = std::make_shared<Proposal>();
+
+    // use the timestamp as proposal id
+    ns3::Time timestamp = requestFrame.GetTimestamp();
+    proposal->setProposalId(timestamp.GetNanoSeconds());
+    proposal->setProposerId(m_nodeId);
+    proposal->setNodeId(m_nodeId);
+    proposal->setValue(requestFrame.GetValue());
+    proposal->setCreateTime(timestamp);
+    proposal->setReceiveTime(ns3::Simulator::Now());
+
+    // set state to TO_BE_PROPOSED
+    proposal->setPropState(Proposal::TO_BE_PROPOSED);
+
+    // Add to queue
+    m_waitingProposals.push(proposal);
+
+    NS_LOG_INFO("PaxosAppServer " << m_nodeId << " created proposal " << proposal->getProposalId() << " from request");
 }

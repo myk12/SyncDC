@@ -43,6 +43,12 @@ typedef std::vector<NodeInfo> NodeInfoList;
 
 class Proposal {
 public:
+    enum PropState {
+        TO_BE_PROPOSED = 100,
+        TO_BE_ACCEPTED,
+        TO_BE_DECIDED
+    } ;
+
     Proposal();
     Proposal(uint64_t proposalId, uint32_t serverId, ns3::Time proposeTime, ns3::Time acceptTime);
     ~Proposal();
@@ -62,21 +68,38 @@ public:
     uint32_t getNumAck();
     void incrementNumAck();
 
+    void setProposerId(uint32_t proposerId);
+    uint32_t getProposerId();
+
+    void setCreateTime(ns3::Time createTime);
+    ns3::Time getCreateTime();
+
+    void setReceiveTime(ns3::Time receiveTime);
+    ns3::Time getReceiveTime();
+
+    void setPropState(PropState propState);
+    PropState getPropState();
+
+    void setDecisionTime(ns3::Time decisionTime);
+    ns3::Time getDecisionTime();
+
 private:
-    uint64_t m_proposalId;
-    uint32_t m_nodeId;
+    uint64_t m_proposalId;      // ID of the proposal, usually the timestamp
+    uint32_t m_nodeId;          // ID of the server that propose the proposal
+    uint32_t m_proposerId;      // ID of the server that propose the proposal
 
-    ns3::Time m_proposeTime;
-    ns3::Time m_acceptTime;   // accept time
-    ns3::Time m_decisionTime;
+    ns3::Time m_createTime;     // Time when client create the proposal
+    ns3::Time m_receiveTime;    // Time when server receive the proposal
 
-    uint32_t m_value;
-    uint32_t m_numAck;
+    ns3::Time m_proposeTime;    // Time when server propose the proposal
+    ns3::Time m_acceptTime;     // Time when get majority of accept
+    ns3::Time m_decisionTime;   // Time when get majority of accept
+
+    uint32_t m_value;           // Value of the proposal
+    uint32_t m_numAck;          // Number of servers that accept the proposal
+    
+    PropState m_propState;      // State of the proposal
 };
-
-bool isProposalSignature(uint8_t *data);
-bool isAcceptSignature(uint8_t *data);
-bool isDecisionSignature(uint8_t *data);
 
 
 #endif // COMMON_HH

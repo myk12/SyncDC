@@ -15,6 +15,7 @@ PaxosAppServer::PaxosAppServer()
 PaxosAppServer::PaxosAppServer(uint32_t selfId, NodeInfoList nodes)
 {
     m_nodeId = selfId;
+    m_serverId = selfId;
     m_numNodes = nodes.size();
     m_nodes = nodes;
 }
@@ -81,7 +82,6 @@ PaxosAppServer::StopApplication(void)
     {
         auto proposal = m_decidedProposals.front();
         logFile << i << ", " << proposal->getProposalId() << ", " << proposal->getNodeId() << ", " << proposal->getValue() << ", " << proposal->getAcceptTime() << std::endl;
-        i++;
         m_decidedProposals.pop();
     }
 
@@ -150,7 +150,6 @@ PaxosAppServer::StopAcceptorThread()
 void
 PaxosAppServer::ReceiveMessage(ns3::Ptr<ns3::Socket> socket)
 {
-    NS_LOG_INFO("PaxosAppServer " << m_nodeId << " receiving message on socket " << socket->GetNode()->GetId());
     ns3::Ptr<ns3::Packet> packet;
     ns3::Address from;
 
@@ -165,19 +164,19 @@ PaxosAppServer::ReceiveMessage(ns3::Ptr<ns3::Socket> socket)
 
         if (pktHeader.IsProposal())
         {
-            NS_LOG_INFO("Node " << m_nodeId << " received proposal with ID " << pktHeader.GetProposalId());
+            NS_LOG_INFO("PaxosAppServer " << m_nodeId << " receiving proposal message for Proposal ID " << pktHeader.GetProposalId());
             // Schedule the proposal to be processed
             ns3::Simulator::ScheduleNow(&PaxosAppServer::DoReceivedProposalMessage, this, pktHeader);
         }
         else if (pktHeader.IsAccept())
         {
-            NS_LOG_INFO("Node " << m_nodeId << " received accept with ID " << pktHeader.GetProposalId());
+            NS_LOG_INFO("PaxosAppServer " << m_nodeId << " receiving accept message for Proposal ID " << pktHeader.GetProposalId());
             // Schedule the proposal to be processed
             ns3::Simulator::ScheduleNow(&PaxosAppServer::DoReceivedAcceptMessage, this, pktHeader);
         }
         else if (pktHeader.IsDecision())
         {
-            NS_LOG_INFO("Node " << m_nodeId << " received decision with ID " << pktHeader.GetProposalId());
+            NS_LOG_INFO("PaxosAppServer " << m_nodeId << " receiving decision message for Proposal ID " << pktHeader.GetProposalId());
             // Schedule the proposal to be processed
             ns3::Simulator::ScheduleNow(&PaxosAppServer::DoReceivedDecisionMessage, this, pktHeader);
         }
@@ -186,9 +185,6 @@ PaxosAppServer::ReceiveMessage(ns3::Ptr<ns3::Socket> socket)
             NS_FATAL_ERROR("Unknown packet type");
             return; // Unknown packet type, ignore it
         }
-     
-        // For now, just log the packet size
-        NS_LOG_INFO("Packet size: " << packet->GetSize());
     }
 }
 
@@ -199,26 +195,23 @@ PaxosAppServer::DoReceivedProposalMessage(PaxosFrame frame)
     NS_LOG_INFO("PaxosAppServer " << m_nodeId << " receiving proposal message for Proposal ID " << frame.GetProposalId());
     uint32_t proposerId = frame.GetProposerId();
 
-    //if (proposerId != ns3::Simulator::Now().GetMilliSeconds() % m_numNodes)
-    //{
-    //    NS_LOG_WARN("PaxosAppServer " << m_nodeId << " ignoring proposal from wrong proposer ID " << proposerId);
-    //    return; // Ignore the proposal if it is not from the right proposer
-    //}
-
     // Set Accept time
-    frame.SetAcceptorId(m_nodeId);
+    frame.SetAcceptorId(m_serverId);
     frame.SetAcceptTime(ns3::Simulator::Now());
 
-    // Process the proposal
+    // Create a new proposal
     std::shared_ptr<Proposal> proposal = std::make_shared<Proposal>();
     proposal->setProposalId(frame.GetProposalId());
     proposal->setNodeId(frame.GetProposerId());
     proposal->setValue(frame.GetValue());
     proposal->setProposeTime(frame.GetProposeTime());
     proposal->setNumAck(0);
-    // TODO: can record the received proposal
+    proposal->setAcceptTime(ns3::Simulator::Now());
 
-    ns3::Simulator::ScheduleNow(&PaxosAppServer::SendAcceptMessage, this, frame);
+    // Add the proposal to the map
+    // Actually we don't need to add it to the map, because we will receive the decision message from the proposer
+
+    ns3::Simulator::Schedule(ns3::NanoSeconds(10), &PaxosAppServer::SendAcceptMessage, this, frame);
 }
 
 void
@@ -227,6 +220,9 @@ PaxosAppServer::SendAcceptMessage(PaxosFrame frame)
     NS_LOG_INFO("PaxosAppServer " << m_nodeId << " sending accept message for Proposal ID " << frame.GetProposalId());
 
     frame.SetMessageType(PaxosFrame::ACCEPT);
+    frame.SetAcceptorId(m_serverId);
+    frame.SetAcceptTime(ns3::Simulator::Now());
+
 
     // Create Packet
     ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>();
@@ -236,15 +232,7 @@ PaxosAppServer::SendAcceptMessage(PaxosFrame frame)
     ns3::Ipv4Address address = m_nodes[frame.GetProposerId()].address;
     uint16_t port = m_nodes[frame.GetProposerId()].paxosPort;
 
-    NS_LOG_INFO("PaxosAppServer " << m_nodeId << " sending accept message to proposer ID " 
-                << frame.GetProposerId() 
-                << " at address " << address 
-                << ":" << port 
-                <<" for proposal ID "  << frame.GetProposalId()
-                << " at time " << frame.GetProposeTime());
-
     ns3::InetSocketAddress to(address, port);
-
     m_sendSocket->SendTo(packet, 0, to);
 }
 
@@ -257,7 +245,7 @@ PaxosAppServer::DoReceivedAcceptMessage(PaxosFrame frame)
     uint64_t proposalId = frame.GetProposalId();
     uint32_t acceptorId = frame.GetAcceptorId();
 
-    if (proposerId != m_nodeId)
+    if (proposerId != m_serverId)
     {
         NS_LOG_WARN("PaxosAppServer " << m_nodeId << " ignoring accept message from wrong proposer ID " << proposerId);
         return; // Ignore the accept message if it is not from the right proposer
@@ -273,14 +261,17 @@ PaxosAppServer::DoReceivedAcceptMessage(PaxosFrame frame)
 
     // Get the proposal
     std::shared_ptr<Proposal> proposal = it->second;
-
     // Increment the accept count
     proposal->incrementNumAck();
 
     // If the proposal has enough accepts, send a decision message
     if (proposal->getNumAck() >= (m_numNodes / 2))
     {
-        NS_LOG_INFO("PaxosAppServer " << m_nodeId << " sending decision message for Proposal ID " << proposal->getProposalId());
+        // Add to our decided proposals queue
+        NS_LOG_INFO("PaxosAppServer " << m_nodeId << " adding proposal ID " << proposalId << " to decided proposals queue.");
+        proposal->setDecisionTime(ns3::Simulator::Now());
+
+        m_decidedProposals.push(proposal);
 
         SendDecisionMessage(frame);
 
@@ -296,6 +287,7 @@ PaxosAppServer::DoReceivedAcceptMessage(PaxosFrame frame)
 void
 PaxosAppServer::SendDecisionMessage(PaxosFrame frame)
 {
+    NS_LOG_INFO("PaxosAppServer " << m_nodeId << " sending decision message for Proposal ID " << frame.GetProposalId());
     // Create Header
     frame.SetMessageType(PaxosFrame::DECISION);
     frame.SetDecisionTime(ns3::Simulator::Now());
@@ -331,27 +323,18 @@ PaxosAppServer::DoReceivedDecisionMessage(PaxosFrame frame)
     // Add the decision to the decided proposals queue
     std::shared_ptr<Proposal> proposal = std::make_shared<Proposal>();
     proposal->setProposalId(frame.GetProposalId());
+    proposal->setProposerId(frame.GetProposerId());
+    proposal->setNodeId(frame.GetProposerId()); // Set the node ID to the current node
     proposal->setValue(frame.GetValue());
     proposal->setProposeTime(frame.GetProposeTime());
-    proposal->setNodeId(frame.GetProposerId()); // Set the node ID to the current node
-    proposal->setNumAck(5); // Reset the number of acknowledgments
+    proposal->setAcceptTime(frame.GetAcceptTime());
+    proposal->setDecisionTime(frame.GetDecisionTime());
 
     // Add the proposal to the decided proposals queue
-    // TODO: Set the maximum size of the queue if needed
     m_decidedProposals.push(proposal);
 
-    uint64_t proposalId = frame.GetProposalId();
+    // Since we don't need to add the proposal to the map, we don't need to delete it from the map
     // Delete the proposal from the proposals map
-    auto it = m_proposals.find(proposalId);
-    if (it != m_proposals.end())
-    {
-        m_proposals.erase(it);
-        NS_LOG_INFO("PaxosAppServer " << m_nodeId << " removed proposal ID " << proposalId << " from proposals map.");
-    }
-    else
-    {
-        NS_LOG_WARN("PaxosAppServer " << m_nodeId << " could not find proposal ID " << proposalId << " in proposals map.");
-    }
-    // Log the decision
-    NS_LOG_INFO("PaxosAppServer " << m_nodeId << " received decision for Proposal ID " << proposalId << " with value " << frame.GetValue() << " from Node " << frame.GetProposerId() << " at time " << frame.GetDecisionTime() << ".");
+    
+    NS_LOG_INFO("PaxosAppServer " << m_nodeId << " added proposal ID " << frame.GetProposalId() << " to decided proposals queue.");
 }

@@ -42,6 +42,7 @@ public:
     void ReceiveRequest(ns3::Ptr<ns3::Socket> socket);
     void StartListenerThread();
     void StopListenerThread();
+    void CreateProposalFromRequest(RequestFrame requestFrame);
 
     // Proposer Functions
     void StartProposerThread();
@@ -63,6 +64,7 @@ public:
 
 private:
     uint32_t m_nodeId;  // Node ID of this node
+    uint32_t m_serverId; // Use serverId instead of nodeId
     uint32_t m_numNodes;    // Number of nodes in the network
     NodeInfoList m_nodes; // List of all nodes in the network }; 
 

@@ -85,7 +85,6 @@ PaxosAppClient::SendRequest()
         return;
     }
 
-
     // log time
     NS_LOG_INFO("Sending Request at " << ns3::Simulator::Now() << " seconds");
     // Generate Request and Send it to Servers
