@@ -113,6 +113,6 @@ PaxosAppClient::SendRequest()
     uint32_t interval = m_sendRandom->GetInteger();
 
     // Simulator::Schedule() takes a time and a function
-    ns3::Simulator::Schedule(ns3::MicroSeconds(interval), &PaxosAppClient::SendRequest, this);
+    ns3::Simulator::Schedule(ns3::NanoSeconds(interval*10), &PaxosAppClient::SendRequest, this);
 
 }

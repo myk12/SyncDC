@@ -24,7 +24,7 @@
 // L3: 1,000,000 Nanoseconds or 1 Millisecond
 // L4: 10,000,000 Nanoseconds or 10 Milliseconds
 // L5: 100,000,000 Nanoseconds or 100 Milliseconds
-#define MESSAGE_DELAY_BOUND (100000) // Nanoseconds
+#define MESSAGE_DELAY_BOUND (1000000) // Nanoseconds
 
 #define PAXOS_PORT (9000)   // This port is used for Paxos protocol
 #define SERVER_PORT (9001)  // This port is used for accept client reqeusts
@@ -41,6 +41,27 @@ typedef struct {
 
 typedef std::vector<NodeInfo> NodeInfoList;
 
+// Define a PaxosConfig struct
+typedef struct PaxosConfig {
+    // 1. System mode
+    bool isSynchronous = true; // true: synchronous; false: asynchronous
+
+    // 2. Network Status
+    // Only for synchronous mode
+    std::string clockSyncError = "10ns";   // time synchronization error
+    std::string boundedMessageDelay = "10ms"; // bounded message delay
+
+    // Only for asynchronous mode
+    std::string linkDelay = "10ms";       // link delay
+    double packetLossRate = 0.0;          // packet loss rate
+
+    // 3. Node Failure Rate
+    double nodeFailureRate = 0.0;         // node failure rate (e.g. 0.01 means 1% failure rate)
+
+    // 4. Paxos Config File Path
+    std::string configFilePath = "";
+} PaxosConfig;
+
 class Proposal {
 public:
     enum PropState {
@@ -52,6 +73,8 @@ public:
     Proposal();
     Proposal(uint64_t proposalId, uint32_t serverId, ns3::Time proposeTime, ns3::Time acceptTime);
     ~Proposal();
+
+    bool operator>(const Proposal& other) const;
 
     void setProposalId(uint64_t proposalId);
     void setNodeId(uint32_t serverId);

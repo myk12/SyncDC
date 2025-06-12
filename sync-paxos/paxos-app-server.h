@@ -22,6 +22,13 @@
  * It handles message sending and receiving, and manages the state of the Paxos protocol.
  */
 
+struct ProposalMinHeapCompare {
+    bool operator()(std::shared_ptr<Proposal> p1, std::shared_ptr<Proposal> p2) const {
+        // For a min-heap, return true if p1 should come AFTER p2 (i.e., p1 is "larger" than p2)
+        return p1->getProposalId() > p2->getProposalId();
+    }
+};
+
 class PaxosAppServer : public ns3::Application
 {
 public:
@@ -61,6 +68,10 @@ public:
     void DoReceivedAcceptMessage(PaxosFrame frame);
     void DoReceivedDecisionMessage(PaxosFrame frame);
 
+    // Configuration Function
+    void SetClockSyncError(ns3::Time clockSyncError);
+    void SetBoundedMessageDelay(ns3::Time boundedMessageDelay);
+    void SetNodeFailureRate(double nodeFailureRate);
 
 private:
     uint32_t m_nodeId;  // Node ID of this node
@@ -75,15 +86,24 @@ private:
 
     // proposals
     ns3::EventId m_proposeEvent; // Event ID for proposing
-    std::unordered_map<uint64_t, std::shared_ptr<Proposal>> m_proposals; // Map of proposals
+    std::unordered_map<uint64_t, std::shared_ptr<Proposal>> m_proposals; // Map of proposing proposals
+    std::unordered_map<uint64_t, std::shared_ptr<Proposal>> m_acceptedProposals; // Map of accepted proposals
     uint64_t m_nextProposalId; // Next proposal ID to be used
     std::queue<std::shared_ptr<Proposal>> m_abandonedProposals; // Queue of abandoned proposals
-    std::queue<std::shared_ptr<Proposal>> m_acceptedProposals; // Queue of accepted proposals
-    std::queue<std::shared_ptr<Proposal>> m_decidedProposals; // Queue of decided proposals
+    //std::queue<std::shared_ptr<Proposal>> m_decidedProposals; // Queue of decided proposals
+    std::priority_queue<std::shared_ptr<Proposal>,
+        std::vector<std::shared_ptr<Proposal>>,
+        ProposalMinHeapCompare> m_decidedProposalQueue;
 
     // Listener thread
     ns3::Ptr<ns3::Socket> m_listenerSocket; // UDP socket for listening for messages
     std::queue<std::shared_ptr<Proposal>> m_waitingProposals; // Queue of waiting proposals
+
+    // Configuration
+    ns3::Time m_clockSyncError; // Maximum clock synchronization error
+    ns3::Time m_boundedMessageDelay; // Maximum message delay
+
+    double m_nodeFailureRate;
 };
 
 #endif // PAXOS_APP_HH

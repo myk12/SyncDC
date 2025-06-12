@@ -8,11 +8,14 @@ PaxosTopologyClos::PaxosTopologyClos(uint32_t numSpines,
                                      std::string bandwidthLeaf2Spine,
                                      std::string delayLeaf2Spine,
                                      std::string bandwidthHost2Leaf,
-                                     std::string delayHost2Leaf) {
+                                     std::string delayHost2Leaf,
+                                     PaxosConfig paxosConfig) {
 
 
 
     NS_LOG_INFO("Creating Clos topology with " << numSpines << " spines, " << numLeaves << " leaves, " << numHostsPerLeaf << " hosts per leaf, " << bandwidthLeaf2Spine << " bandwidth leaf to spine, " << delayLeaf2Spine << " delay leaf to spine, " << bandwidthHost2Leaf << " bandwidth host to leaf, " << delayHost2Leaf << " delay host to leaf");
+
+    m_paxosConfig = paxosConfig;
 
     // Create spine nodes
     m_spineNodes.Create(numSpines);
@@ -151,6 +154,10 @@ PaxosTopologyClos::InitPaxosServerCluster(std::vector<std::pair<uint32_t, uint32
 
         // Create PaxosAppServer and Install on this node
         ns3::Ptr<PaxosAppServer> paxosAppServer = ns3::CreateObject<PaxosAppServer>(i, m_serverInfoList);
+        paxosAppServer->SetClockSyncError(ns3::Time(m_paxosConfig.clockSyncError));
+        paxosAppServer->SetBoundedMessageDelay(ns3::Time(m_paxosConfig.boundedMessageDelay));
+        paxosAppServer->SetNodeFailureRate(m_paxosConfig.nodeFailureRate);
+
         m_paxosAppServerContainer.Add(paxosAppServer);
         node->AddApplication(paxosAppServer);
     }

@@ -28,7 +28,8 @@ public:
                       std::string bandwidthLeaf2Spine,
                       std::string delayLeaf2Spine,
                       std::string bandwidthHost2Leaf,
-                      std::string delayHost2Leaf);
+                      std::string delayHost2Leaf,
+                      PaxosConfig paxosConfig);
     ~PaxosTopologyClos();
 
     ns3::Ipv4Address GetSpineAddress(uint32_t spineId);
@@ -58,6 +59,8 @@ private:
     
     ns3::ApplicationContainer m_paxosAppServerContainer;
     ns3::ApplicationContainer m_paxosAppClientContainer;
+
+    PaxosConfig m_paxosConfig;
 };
 
 #endif

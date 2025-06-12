@@ -19,6 +19,8 @@ NS_LOG_COMPONENT_DEFINE("SyncPaxos");
 // installs a UDP echo server on one node, and a UDP echo client on the other node.
 // The client sends a single packet to the server, which echoes it back.
 
+PaxosConfig g_paxosConfig;
+
 int main(int argc, char *argv[]) {
 
     ns3::LogComponentEnableAll(ns3::LOG_PREFIX_TIME);
@@ -26,13 +28,37 @@ int main(int argc, char *argv[]) {
     ns3::LogComponentEnable("PaxosAppClient", ns3::LOG_DEBUG);
     ns3::LogComponentEnable("SyncPaxos", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosAppServer", ns3::LOG_INFO);
-    ns3::LogComponentEnable("PaxosFrame", ns3::LOG_INFO);
-    ns3::LogComponentEnable("PaxosAppServerListener", ns3::LOG_INFO);
-    ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_INFO);
+    ns3::LogComponentEnable("PaxosFrame", ns3::LOG_DEBUG);
+    ns3::LogComponentEnable("PaxosAppServerListener", ns3::LOG_DEBUG);
+    ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_DEBUG);
     ns3::LogComponentEnable("PaxosTopologyClos", ns3::LOG_INFO);
 
     ns3::CommandLine cmd;
+
+    // The configuration file has the lower priority than the command line arguments.
+    cmd.AddValue("config", "Path to the configuration file.", g_paxosConfig.configFilePath);
+    cmd.AddValue("sync", "Set Paxos execution to synchronous (true) or asynchronous (false). Default is true (synchronous).", g_paxosConfig.isSynchronous);
+
+    // 2. Network parameters
+    //    for synchronous mode
+    cmd.AddValue("clockSyncError", "Clock synchronization error for synchronous mode (e.g., '10ns', '1us').", g_paxosConfig.clockSyncError);
+    cmd.AddValue("boundedMessageDelay", "Bounded message delay for synchronous mode (e.g., '5ms', '10ms').", g_paxosConfig.boundedMessageDelay);
+
+    //    for asynchronous mode
+    cmd.AddValue("linkDelay", "Link delay for asynchronous mode (e.g., '10ms', '50ms').", g_paxosConfig.linkDelay);
+    cmd.AddValue("lossRate", "Packet loss rate for asynchronous mode (e.g., 0.01 for 1%).", g_paxosConfig.packetLossRate);
+
+    // 3. Node failure rate
+    cmd.AddValue("failureRate", "Node failure rate (e.g., 0.05 for 5%).", g_paxosConfig.nodeFailureRate);
+    
     cmd.Parse(argc, argv);
+
+    // Output Configuration
+    NS_LOG_INFO("-------- Configuration: --------");
+    NS_LOG_INFO("Config File Path: " << g_paxosConfig.configFilePath);
+    NS_LOG_INFO("Synchronous: " << g_paxosConfig.isSynchronous);
+    NS_LOG_INFO("Clock Sync Error: " << g_paxosConfig.clockSyncError);
+    NS_LOG_INFO("Bounded Message Delay: " << g_paxosConfig.boundedMessageDelay);
 
     NS_LOG_INFO("Starting SyncPaxos Simulation");
     uint32_t numSpine = 3;
@@ -52,7 +78,9 @@ int main(int argc, char *argv[]) {
         bandwidthLeaf2Spine,
         delayLeaf2Spine,
         bandwidthHost2Leaf,
-        delayHost2Leaf);
+        delayHost2Leaf,
+        g_paxosConfig
+    );
 
     // Init Paxos Server Cluster
     NS_LOG_INFO("Init Paxos Server Cluster");

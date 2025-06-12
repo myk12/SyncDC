@@ -10,6 +10,11 @@ Proposal::~Proposal() {
     // Destructor logic if needed
 }
 
+bool
+Proposal::operator>(const Proposal& other) const {
+    return m_proposalId > other.m_proposalId;
+}
+
 uint64_t Proposal::getProposalId() {
     return m_proposalId;
 }

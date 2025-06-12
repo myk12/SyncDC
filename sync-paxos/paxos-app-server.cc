@@ -34,6 +34,24 @@ PaxosAppServer::GetTypeId(void)
 }
 
 void
+PaxosAppServer::SetClockSyncError(ns3::Time clockSyncError)
+{
+    m_clockSyncError = clockSyncError;
+}
+
+void
+PaxosAppServer::SetBoundedMessageDelay(ns3::Time boundedMessageDelay)
+{
+    m_boundedMessageDelay = boundedMessageDelay;
+}
+
+void
+PaxosAppServer::SetNodeFailureRate(double nodeFailureRate)
+{
+    m_nodeFailureRate = nodeFailureRate;
+}
+
+void
 PaxosAppServer::StartApplication(void)
 {
     // Create a UDP socket for receiving messages
@@ -43,7 +61,9 @@ PaxosAppServer::StartApplication(void)
     CreateSendSocket();
 
     // Calculate the proposal period
-    m_proposePeriod = ns3::NanoSeconds(2*TIME_SYNC_ERROR + MESSAGE_DELAY_BOUND);
+    m_proposePeriod = 2*m_clockSyncError + m_boundedMessageDelay;
+    NS_LOG_INFO("Clock sync error: " << m_clockSyncError.GetNanoSeconds() << "ns, Bounded message delay: " << m_boundedMessageDelay.GetNanoSeconds() << "ns");
+    NS_LOG_INFO("Proposal period: " << m_proposePeriod.GetNanoSeconds() << "ns");
 
     // Start Listener Thread
     NS_LOG_INFO("Starting Listener Thread for Node " << m_nodeId);
@@ -70,19 +90,19 @@ PaxosAppServer::StopApplication(void)
     // Create file if it not exists
     if (!std::filesystem::exists(logFilePath))
     {
-        std::ofstream logFile(logFilePath, std::ios::out | std::ios::app);
+        std::ofstream logFile(logFilePath, std::ios::out);
         logFile.close();
     }
 
-    std::ofstream logFile(logFilePath, std::ios::out | std::ios::app);
-    logFile <<"index,proposalId,proposerId,value,acceptTime\n";
+    std::ofstream logFile(logFilePath, std::ios::out);
+    logFile <<"index,proposalId,proposerId,value,decidedTime\n";
 
-    uint64_t length = m_decidedProposals.size();
+    uint64_t length = m_decidedProposalQueue.size();
     for (uint64_t i=0; i<length; i++)
     {
-        auto proposal = m_decidedProposals.front();
-        logFile << i << ", " << proposal->getProposalId() << ", " << proposal->getNodeId() << ", " << proposal->getValue() << ", " << proposal->getAcceptTime() << std::endl;
-        m_decidedProposals.pop();
+        auto proposal = m_decidedProposalQueue.top();
+        logFile << i << "," << proposal->getProposalId() << "," << proposal->getNodeId() << "," << proposal->getValue() << "," << proposal->getDecisionTime() << std::endl;
+        m_decidedProposalQueue.pop();
     }
 
     logFile.close();
@@ -209,7 +229,7 @@ PaxosAppServer::DoReceivedProposalMessage(PaxosFrame frame)
     proposal->setAcceptTime(ns3::Simulator::Now());
 
     // Add the proposal to the map
-    // Actually we don't need to add it to the map, because we will receive the decision message from the proposer
+    m_acceptedProposals[frame.GetProposalId()] = proposal;
 
     ns3::Simulator::Schedule(ns3::NanoSeconds(10), &PaxosAppServer::SendAcceptMessage, this, frame);
 }
@@ -271,7 +291,7 @@ PaxosAppServer::DoReceivedAcceptMessage(PaxosFrame frame)
         NS_LOG_INFO("PaxosAppServer " << m_nodeId << " adding proposal ID " << proposalId << " to decided proposals queue.");
         proposal->setDecisionTime(ns3::Simulator::Now());
 
-        m_decidedProposals.push(proposal);
+        m_decidedProposalQueue.push(proposal);
 
         SendDecisionMessage(frame);
 
@@ -331,7 +351,7 @@ PaxosAppServer::DoReceivedDecisionMessage(PaxosFrame frame)
     proposal->setDecisionTime(frame.GetDecisionTime());
 
     // Add the proposal to the decided proposals queue
-    m_decidedProposals.push(proposal);
+    m_decidedProposalQueue.push(proposal);
 
     // Since we don't need to add the proposal to the map, we don't need to delete it from the map
     // Delete the proposal from the proposals map

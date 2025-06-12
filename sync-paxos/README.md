@@ -29,5 +29,3 @@ C4Container
     Rel(paxos_comm_hub, server4, "Paxos Communication", "Sync Messages")
     Rel(paxos_comm_hub, server5, "Paxos Communication", "Sync Messages")
 ```
-
-
