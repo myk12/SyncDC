@@ -162,3 +162,4 @@ void PaxosFrame::SetDecisionTime(ns3::Time decisionTime) { m_decisionTime = deci
 bool PaxosFrame::IsProposal() const { return m_messageType == PROPOSAL; }
 bool PaxosFrame::IsAccept() const { return m_messageType == ACCEPT; }
 bool PaxosFrame::IsDecision() const { return m_messageType == DECISION; }
+bool PaxosFrame::IsDecisionAck() const { return m_messageType == DECISION_ACK; }

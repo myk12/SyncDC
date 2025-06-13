@@ -1,0 +1,13 @@
+@startuml
+
+[*] --> WaitingRequest
+WaitingRequest --> Proposing : Request queue not empty.
+Proposing --> Proposed : Propsal sent.
+Proposed --> Accepted : Get majority votes.
+Proposed -[#red]-> Proposing : Timeout.
+Accepted --> Decising : Decision sent.
+Decising --> Decided : Get majority votes.
+Decising -[#red]-> Proposing : Timeout.
+Decided --> WaitingRequest
+
+@enduml

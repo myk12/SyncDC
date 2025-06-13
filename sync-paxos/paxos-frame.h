@@ -43,6 +43,7 @@ public:
         PROPOSAL = 100,
         ACCEPT,
         DECISION,
+        DECISION_ACK
     };
 
     PaxosFrame();
@@ -80,6 +81,7 @@ public:
     bool IsProposal() const;
     bool IsAccept() const;
     bool IsDecision() const;
+    bool IsDecisionAck() const;
 
 private:
     // Message type (4 bytes) - A unique identifier for the message type.

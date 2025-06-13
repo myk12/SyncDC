@@ -32,6 +32,19 @@ struct ProposalMinHeapCompare {
 class PaxosAppServer : public ns3::Application
 {
 public:
+    enum PaxosLeaderState {
+        PAXOS_LEADER_WAITING_REQUEST = 100,
+        PAXOS_LEADER_PROPOSING,
+        PAXOS_LEADER_PROPOSED,
+        PAXOS_LEADER_ACCEPTED,
+        PAXOS_LEADER_DECISING,
+        PAXOS_LEADER_DECIDED
+    };
+
+    static bool s_async; // Whether to use synchronous or asynchronous Paxos
+    static uint32_t s_leader;
+    static ns3::Time s_proposeTimeout;
+
     PaxosAppServer();  // Default constructor
     PaxosAppServer(uint32_t selfId, NodeInfoList nodes);   // Constructor
     ~PaxosAppServer();
@@ -54,7 +67,9 @@ public:
     // Proposer Functions
     void StartProposerThread();
     void StopProposerThread();
-    int32_t DoPropose();
+    int32_t DoSyncPropose();
+    int32_t DoAsyncPropose();   
+    uint64_t DoPropose();
 
     // Acceptor Functions
     void StartAcceptorThread();
@@ -67,6 +82,7 @@ public:
     void DoReceivedProposalMessage(PaxosFrame frame);
     void DoReceivedAcceptMessage(PaxosFrame frame);
     void DoReceivedDecisionMessage(PaxosFrame frame);
+    void DoReceivedDecisionAckMessage(PaxosFrame frame);
 
     // Configuration Function
     void SetClockSyncError(ns3::Time clockSyncError);
@@ -104,6 +120,12 @@ private:
     ns3::Time m_boundedMessageDelay; // Maximum message delay
 
     double m_nodeFailureRate;
+
+    // Leader state
+    PaxosLeaderState m_leaderState;
+    std::shared_ptr<Proposal> m_currentProposal; // Current proposal being proposed
+    uint32_t m_numDecidedAck; // Number of acceptors that have decided on the current proposal
+    void proposeTimerExpired(uint64_t proposalId); // Check if proposer do not get enough acceptors to decide on the proposal
 };
 
 #endif // PAXOS_APP_HH

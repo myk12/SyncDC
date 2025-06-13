@@ -129,6 +129,16 @@ PaxosTopologyClos::InitPaxosServerCluster(std::vector<std::pair<uint32_t, uint32
     NS_LOG_INFO("Initializing Paxos servers");
     int32_t ret = 0;
 
+    if (m_paxosConfig.isSynchronous) {
+        NS_LOG_INFO("   ---- Paxos servers are synchronous");
+        PaxosAppServer::s_async = false;
+    } else {
+        NS_LOG_INFO("   ---- Paxos servers are asynchronous");
+        PaxosAppServer::s_async = true;
+        PaxosAppServer::s_leader = 0;
+        PaxosAppServer::s_proposeTimeout = ns3::Time(m_paxosConfig.serverTimeout);
+    }
+
     // Collect all hosts Info
     for (uint32_t i=0; i<hostIdList.size(); i++) {
         NS_LOG_INFO("   ---- Host " << hostIdList[i].first << " on leaf " << hostIdList[i].second);

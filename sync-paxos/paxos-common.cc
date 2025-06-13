@@ -107,3 +107,18 @@ Proposal::PropState
 Proposal::getPropState() {
     return m_propState;
 }
+
+void
+Proposal::setNumDecisionAck(uint32_t numDecisionAck) {
+    m_numDecisionAck = numDecisionAck;
+}
+
+uint32_t
+Proposal::getNumDecisionAck() {
+    return m_numDecisionAck;
+}
+
+void
+Proposal::incrementNumDecisionAck() {
+    m_numDecisionAck++;
+}

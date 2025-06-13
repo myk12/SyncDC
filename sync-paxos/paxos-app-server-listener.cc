@@ -29,8 +29,7 @@ void PaxosAppServer::StartListenerThread()
     m_listenerSocket->SetRecvCallback(MakeCallback(&PaxosAppServer::ReceiveRequest, this));
 }
 
-void
-PaxosAppServer::StopListenerThread()
+void PaxosAppServer::StopListenerThread()
 {
     NS_LOG_INFO("PaxosAppServer " << m_nodeId << " stopping listener thread");
     if (m_listenerSocket != nullptr)
@@ -40,8 +39,7 @@ PaxosAppServer::StopListenerThread()
     }
 }
 
-void
-PaxosAppServer::ReceiveRequest(ns3::Ptr<ns3::Socket> socket)
+void PaxosAppServer::ReceiveRequest(ns3::Ptr<ns3::Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
     ns3::Ptr<ns3::Packet> packet;
@@ -49,17 +47,25 @@ PaxosAppServer::ReceiveRequest(ns3::Ptr<ns3::Socket> socket)
 
     while ((packet = socket->RecvFrom(from)))
     {
-        NS_LOG_INFO("PaxosAppServer " << m_nodeId << " received a request packet");
-        RequestFrame requestFrame;
-        packet->RemoveHeader(requestFrame);
+        // If run in async mode, and I am not the leader, ignore the request
+        if (s_async && m_nodeId != s_leader)
+        {
+            NS_LOG_INFO("PaxosAppServer " << m_nodeId << " is not the leader, ignore the request");
+            continue;
+        }
+        else
+        {
+            NS_LOG_INFO("PaxosAppServer " << m_nodeId << " received a request packet");
+            RequestFrame requestFrame;
+            packet->RemoveHeader(requestFrame);
 
-        // Create Proposal from Request
-        ns3::Simulator::Schedule(ns3::NanoSeconds(10), &PaxosAppServer::CreateProposalFromRequest, this, requestFrame);
+            // Create Proposal from Request
+            ns3::Simulator::Schedule(ns3::NanoSeconds(10), &PaxosAppServer::CreateProposalFromRequest, this, requestFrame);
+        }
     }
 }
 
-void
-PaxosAppServer::CreateProposalFromRequest(RequestFrame requestFrame)
+void PaxosAppServer::CreateProposalFromRequest(RequestFrame requestFrame)
 {
     std::shared_ptr<Proposal> proposal = std::make_shared<Proposal>();
 

@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
     ns3::LogComponentEnable("PaxosAppServer", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosFrame", ns3::LOG_DEBUG);
     ns3::LogComponentEnable("PaxosAppServerListener", ns3::LOG_DEBUG);
-    ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_DEBUG);
+    ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosTopologyClos", ns3::LOG_INFO);
 
     ns3::CommandLine cmd;
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
 
     // Set Paxos Server App Start Stop
     ns3::Time start = ns3::Seconds(1.0);
-    ns3::Time end = ns3::Seconds(1.2);
+    ns3::Time end = ns3::Seconds(5.0);
     topology.SetPaxosServerAppStartStop(start, end);
     topology.SetPaxosClientAppStartStop(start, end);
 

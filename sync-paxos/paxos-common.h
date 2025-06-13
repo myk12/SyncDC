@@ -60,6 +60,8 @@ typedef struct PaxosConfig {
 
     // 4. Paxos Config File Path
     std::string configFilePath = "";
+
+    ns3::Time serverTimeout = ns3::MilliSeconds(300);
 } PaxosConfig;
 
 class Proposal {
@@ -106,6 +108,10 @@ public:
     void setDecisionTime(ns3::Time decisionTime);
     ns3::Time getDecisionTime();
 
+    void setNumDecisionAck(uint32_t numDecisionAck);
+    uint32_t getNumDecisionAck();
+    void incrementNumDecisionAck();
+
 private:
     uint64_t m_proposalId;      // ID of the proposal, usually the timestamp
     uint32_t m_nodeId;          // ID of the server that propose the proposal
@@ -120,6 +126,7 @@ private:
 
     uint32_t m_value;           // Value of the proposal
     uint32_t m_numAck;          // Number of servers that accept the proposal
+    uint32_t m_numDecisionAck;  // Number of servers that decide on the proposal
     
     PropState m_propState;      // State of the proposal
 };
