@@ -112,6 +112,9 @@ public:
     uint32_t getNumDecisionAck();
     void incrementNumDecisionAck();
 
+    void setDecisionAckTime(ns3::Time decisionAckTime);
+    ns3::Time getDecisionAckTime();
+
 private:
     uint64_t m_proposalId;      // ID of the proposal, usually the timestamp
     uint32_t m_nodeId;          // ID of the server that propose the proposal
@@ -123,6 +126,7 @@ private:
     ns3::Time m_proposeTime;    // Time when server propose the proposal
     ns3::Time m_acceptTime;     // Time when get majority of accept
     ns3::Time m_decisionTime;   // Time when get majority of accept
+    ns3::Time m_decisionAckTime; // Time when get majority of decision ack
 
     uint32_t m_value;           // Value of the proposal
     uint32_t m_numAck;          // Number of servers that accept the proposal

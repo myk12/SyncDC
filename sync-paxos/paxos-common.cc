@@ -122,3 +122,13 @@ void
 Proposal::incrementNumDecisionAck() {
     m_numDecisionAck++;
 }
+
+void
+Proposal::setDecisionAckTime(ns3::Time decisionAckTime) {
+    m_decisionAckTime = decisionAckTime;
+}
+
+ns3::Time
+Proposal::getDecisionAckTime() {
+    return m_decisionAckTime;
+}

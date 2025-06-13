@@ -28,10 +28,13 @@ public:
     void StartApplication(void) override;
     void StopApplication(void) override;
 
+    void SetSendInterval(ns3::Time interval);
+
 private:
     void SendRequest();
     uint32_t m_lastServerId; // ID of the last server that the client sent a request to 
     NodeInfoList m_servers; // List of all servers in the network
+    ns3::Time m_sendInterval; // Interval between sending requests  
     ns3::Ptr<ns3::Socket> m_socket;
     ns3::Ptr<ns3::RandomVariableStream> m_sendRandom; // Random variable for request intervals
     ns3::Ptr<ns3::RandomVariableStream> m_valueRandom; // Random variable for request values

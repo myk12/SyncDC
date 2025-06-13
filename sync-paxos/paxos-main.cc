@@ -7,7 +7,7 @@
 
 #include "paxos-app-server.h"
 #include "paxos-frame.h"
-#include "paxos-common.h"    
+#include "paxos-common.h"
 #include "paxos-app-client.h"
 #include "paxos-topology-clos.h"
 
@@ -21,7 +21,8 @@ NS_LOG_COMPONENT_DEFINE("SyncPaxos");
 
 PaxosConfig g_paxosConfig;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 
     ns3::LogComponentEnableAll(ns3::LOG_PREFIX_TIME);
     ns3::LogComponentEnableAll(ns3::LOG_PREFIX_NODE);
@@ -30,7 +31,7 @@ int main(int argc, char *argv[]) {
     ns3::LogComponentEnable("PaxosAppServer", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosFrame", ns3::LOG_DEBUG);
     ns3::LogComponentEnable("PaxosAppServerListener", ns3::LOG_DEBUG);
-    ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_INFO);
+    ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_DEBUG);
     ns3::LogComponentEnable("PaxosTopologyClos", ns3::LOG_INFO);
 
     ns3::CommandLine cmd;
@@ -50,7 +51,7 @@ int main(int argc, char *argv[]) {
 
     // 3. Node failure rate
     cmd.AddValue("failureRate", "Node failure rate (e.g., 0.05 for 5%).", g_paxosConfig.nodeFailureRate);
-    
+
     cmd.Parse(argc, argv);
 
     // Output Configuration
@@ -64,10 +65,27 @@ int main(int argc, char *argv[]) {
     uint32_t numSpine = 3;
     uint32_t numLeaf = 5;
     uint32_t numHostsPerLeaf = 5;
+
     std::string bandwidthLeaf2Spine = "1Gbps";
     std::string delayLeaf2Spine = "5us";
     std::string bandwidthHost2Leaf = "1Gbps";
     std::string delayHost2Leaf = "5us";
+
+    if (g_paxosConfig.isSynchronous)
+    {
+        // In synchronous way, we set the delay as little as possible
+        // so that we can make sure the msg delay is bounded.
+        delayLeaf2Spine = "5us";
+        delayHost2Leaf = "5us";
+    }
+    else
+    {
+        // In asynchronous way, we set the delay as the specified value.
+        // Since the hop is 4, so we set the delay as 1/4 of the specified value.
+        uint32_t delay = ns3::Time(g_paxosConfig.linkDelay).GetNanoSeconds() / 4;
+        delayLeaf2Spine = std::to_string(delay) + "ns";
+        delayHost2Leaf = std::to_string(delay) + "ns";
+    }
 
     // Define the topology
     NS_LOG_INFO("Creating Clos topology with " << numSpine << " spines, " << numLeaf << " leaves, " << numHostsPerLeaf << " hosts per leaf, " << bandwidthLeaf2Spine << " bandwidth leaf to spine, " << delayLeaf2Spine << " delay leaf to spine, " << bandwidthHost2Leaf << " bandwidth host to leaf, " << delayHost2Leaf << " delay host to leaf");
@@ -79,18 +97,19 @@ int main(int argc, char *argv[]) {
         delayLeaf2Spine,
         bandwidthHost2Leaf,
         delayHost2Leaf,
-        g_paxosConfig
-    );
+        g_paxosConfig);
 
     // Init Paxos Server Cluster
     NS_LOG_INFO("Init Paxos Server Cluster");
     std::vector<std::pair<uint32_t, uint32_t>> hostIdList;
-    for (uint32_t i = 0; i < numLeaf; i++) {
+    for (uint32_t i = 0; i < numLeaf; i++)
+    {
         hostIdList.push_back(std::make_pair(i, 0));
     }
 
     int32_t ret = topology.InitPaxosServerCluster(hostIdList);
-    if (ret != 0) {
+    if (ret != 0)
+    {
         NS_LOG_ERROR("Init Paxos Server Cluster failed");
         return -1;
     }
@@ -98,16 +117,17 @@ int main(int argc, char *argv[]) {
     // Init Paxos Client Cluster
     NS_LOG_INFO("Init Paxos Client Cluster");
     std::vector<uint32_t> spineIdList;
-    spineIdList.push_back(numSpine/2);
+    spineIdList.push_back(numSpine / 2);
     ret = topology.InitPaxosClientCluster(spineIdList);
-    if (ret != 0) {
+    if (ret != 0)
+    {
         NS_LOG_ERROR("Init Paxos Client Cluster failed");
         return -1;
     }
 
     // Set Paxos Server App Start Stop
     ns3::Time start = ns3::Seconds(1.0);
-    ns3::Time end = ns3::Seconds(5.0);
+    ns3::Time end = ns3::Seconds(2.0);
     topology.SetPaxosServerAppStartStop(start, end);
     topology.SetPaxosClientAppStartStop(start, end);
 

@@ -9,9 +9,8 @@ PaxosTopologyClos::PaxosTopologyClos(uint32_t numSpines,
                                      std::string delayLeaf2Spine,
                                      std::string bandwidthHost2Leaf,
                                      std::string delayHost2Leaf,
-                                     PaxosConfig paxosConfig) {
-
-
+                                     PaxosConfig paxosConfig)
+{
 
     NS_LOG_INFO("Creating Clos topology with " << numSpines << " spines, " << numLeaves << " leaves, " << numHostsPerLeaf << " hosts per leaf, " << bandwidthLeaf2Spine << " bandwidth leaf to spine, " << delayLeaf2Spine << " delay leaf to spine, " << bandwidthHost2Leaf << " bandwidth host to leaf, " << delayHost2Leaf << " delay host to leaf");
 
@@ -24,7 +23,8 @@ PaxosTopologyClos::PaxosTopologyClos(uint32_t numSpines,
     m_leafNodes.Create(numLeaves);
 
     // Create host nodes
-    for (uint32_t i = 0; i < numLeaves; i++) {
+    for (uint32_t i = 0; i < numLeaves; i++)
+    {
         ns3::NodeContainer hostNodes;
         hostNodes.Create(numHostsPerLeaf);
         m_hostNodes.push_back(hostNodes);
@@ -35,7 +35,8 @@ PaxosTopologyClos::PaxosTopologyClos(uint32_t numSpines,
     ns3::InternetStackHelper internet;
     internet.Install(m_spineNodes);
     internet.Install(m_leafNodes);
-    for (auto it = m_hostNodes.begin(); it != m_hostNodes.end(); it++) {
+    for (auto it = m_hostNodes.begin(); it != m_hostNodes.end(); it++)
+    {
         internet.Install(*it);
     }
 
@@ -44,10 +45,12 @@ PaxosTopologyClos::PaxosTopologyClos(uint32_t numSpines,
     p2p.SetDeviceAttribute("DataRate", ns3::StringValue(bandwidthLeaf2Spine));
     p2p.SetChannelAttribute("Delay", ns3::StringValue(delayLeaf2Spine));
 
-    for (uint32_t i = 0; i < numSpines; i++) {
+    for (uint32_t i = 0; i < numSpines; i++)
+    {
         std::vector<ns3::NetDeviceContainer> spineLeafLinksMatrixRow;
         std::vector<ns3::Ipv4InterfaceContainer> spineLeafInterfaceMatrixRow;
-        for (uint32_t j = 0; j < numLeaves; j++) {
+        for (uint32_t j = 0; j < numLeaves; j++)
+        {
             // Install P2P link between spine and leaf
             ns3::NetDeviceContainer spineLeafLink = p2p.Install(m_spineNodes.Get(i), m_leafNodes.Get(j));
             spineLeafLinksMatrixRow.push_back(spineLeafLink);
@@ -69,10 +72,12 @@ PaxosTopologyClos::PaxosTopologyClos(uint32_t numSpines,
     p2pHost.SetDeviceAttribute("DataRate", ns3::StringValue(bandwidthHost2Leaf));
     p2pHost.SetChannelAttribute("Delay", ns3::StringValue(delayHost2Leaf));
 
-    for (uint32_t i = 0; i < numLeaves; i++) {
+    for (uint32_t i = 0; i < numLeaves; i++)
+    {
         std::vector<ns3::NetDeviceContainer> leafHostLinksMatrixRow;
         std::vector<ns3::Ipv4InterfaceContainer> leafHostInterfaceMatrixRow;
-        for (uint32_t j = 0; j < numHostsPerLeaf; j++) {
+        for (uint32_t j = 0; j < numHostsPerLeaf; j++)
+        {
             // Install P2P link between leaf and host
             ns3::NetDeviceContainer leafHostLink = p2pHost.Install(m_leafNodes.Get(i), m_hostNodes[i].Get(j));
             leafHostLinksMatrixRow.push_back(leafHostLink);
@@ -93,12 +98,15 @@ PaxosTopologyClos::PaxosTopologyClos(uint32_t numSpines,
     // Log the topology visually
     NS_LOG_INFO("Clos topology created");
     NS_LOG_INFO("Spine nodes:");
-    for (uint32_t i = 0; i < numSpines; i++) {
+    for (uint32_t i = 0; i < numSpines; i++)
+    {
         NS_LOG_INFO("   ---- Spine node " << i << ": " << m_spineNodes.Get(i)->GetId());
         // Log the connected leafnode
-        for (uint32_t j = 0; j < numLeaves; j++) {
+        for (uint32_t j = 0; j < numLeaves; j++)
+        {
             NS_LOG_INFO("       |--- Leaf node " << j << ": " << m_spineLeafInterfaceMatrix[i][j].GetAddress(1));
-            for (uint32_t k = 0; k < numHostsPerLeaf; k++) {
+            for (uint32_t k = 0; k < numHostsPerLeaf; k++)
+            {
                 NS_LOG_INFO("       |       |--- Host node " << k << ": " << m_hostLeafInterfaceMatrix[j][k].GetAddress(1));
             }
         }
@@ -106,33 +114,40 @@ PaxosTopologyClos::PaxosTopologyClos(uint32_t numSpines,
 
     // Populate the Routing table
     ns3::Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-
 }
 
-PaxosTopologyClos::~PaxosTopologyClos() {
+PaxosTopologyClos::~PaxosTopologyClos()
+{
 }
 
-ns3::Ipv4Address PaxosTopologyClos::GetSpineAddress(uint32_t spineId) {
+ns3::Ipv4Address PaxosTopologyClos::GetSpineAddress(uint32_t spineId)
+{
     return m_spineLeafInterfaceMatrix[spineId][0].GetAddress(1);
 }
 
-ns3::Ipv4Address PaxosTopologyClos::GetLeafAddress(uint32_t spineId, uint32_t leafId) {
+ns3::Ipv4Address PaxosTopologyClos::GetLeafAddress(uint32_t spineId, uint32_t leafId)
+{
     return m_spineLeafInterfaceMatrix[spineId][leafId].GetAddress(1);
 }
 
-ns3::Ipv4Address PaxosTopologyClos::GetHostAddress(uint32_t leafId, uint32_t hostId) {
+ns3::Ipv4Address PaxosTopologyClos::GetHostAddress(uint32_t leafId, uint32_t hostId)
+{
     return m_hostLeafInterfaceMatrix[leafId][hostId].GetAddress(1);
 }
 
 int32_t
-PaxosTopologyClos::InitPaxosServerCluster(std::vector<std::pair<uint32_t, uint32_t>> hostIdList) {
+PaxosTopologyClos::InitPaxosServerCluster(std::vector<std::pair<uint32_t, uint32_t>> hostIdList)
+{
     NS_LOG_INFO("Initializing Paxos servers");
     int32_t ret = 0;
 
-    if (m_paxosConfig.isSynchronous) {
+    if (m_paxosConfig.isSynchronous)
+    {
         NS_LOG_INFO("   ---- Paxos servers are synchronous");
         PaxosAppServer::s_async = false;
-    } else {
+    }
+    else
+    {
         NS_LOG_INFO("   ---- Paxos servers are asynchronous");
         PaxosAppServer::s_async = true;
         PaxosAppServer::s_leader = 0;
@@ -140,7 +155,8 @@ PaxosTopologyClos::InitPaxosServerCluster(std::vector<std::pair<uint32_t, uint32
     }
 
     // Collect all hosts Info
-    for (uint32_t i=0; i<hostIdList.size(); i++) {
+    for (uint32_t i = 0; i < hostIdList.size(); i++)
+    {
         NS_LOG_INFO("   ---- Host " << hostIdList[i].first << " on leaf " << hostIdList[i].second);
         u_int32_t leafId = hostIdList[i].first;
         u_int32_t hostId = hostIdList[i].second;
@@ -150,16 +166,17 @@ PaxosTopologyClos::InitPaxosServerCluster(std::vector<std::pair<uint32_t, uint32
 
         // Create a node info
         NodeInfo nodeInfo;
-        nodeInfo.serverId   = i;
-        nodeInfo.address    = hostAddress;
+        nodeInfo.serverId = i;
+        nodeInfo.address = hostAddress;
         nodeInfo.serverPort = SERVER_PORT;
-        nodeInfo.paxosPort  = PAXOS_PORT;
+        nodeInfo.paxosPort = PAXOS_PORT;
 
         m_serverInfoList.push_back(nodeInfo);
     }
 
-    for (int32_t i=0; i<hostIdList.size(); i++) {
-        NS_LOG_INFO("   ---- Creating Paxos server " << i << " on host " << m_serverInfoList[i].address << "" );
+    for (int32_t i = 0; i < hostIdList.size(); i++)
+    {
+        NS_LOG_INFO("   ---- Creating Paxos server " << i << " on host " << m_serverInfoList[i].address << "");
         ns3::Ptr<ns3::Node> node = m_hostNodes[hostIdList[i].first].Get(hostIdList[i].second);
 
         // Create PaxosAppServer and Install on this node
@@ -176,16 +193,28 @@ PaxosTopologyClos::InitPaxosServerCluster(std::vector<std::pair<uint32_t, uint32
 }
 
 int32_t
-PaxosTopologyClos::InitPaxosClientCluster(std::vector<uint32_t> spineIdList) {
+PaxosTopologyClos::InitPaxosClientCluster(std::vector<uint32_t> spineIdList)
+{
     NS_LOG_INFO("Initializing Paxos clients");
     int32_t ret = 0;
 
-    for (uint32_t i=0; i<spineIdList.size(); i++) {
-        NS_LOG_INFO("   ---- Creating Paxos client " << i << " on spine " << spineIdList[i] );
+    for (uint32_t i = 0; i < spineIdList.size(); i++)
+    {
+        NS_LOG_INFO("   ---- Creating Paxos client " << i << " on spine " << spineIdList[i]);
         ns3::Ptr<ns3::Node> node = m_spineNodes.Get(spineIdList[i]);
 
         // Create PaxosAppClient and Install on this node
         ns3::Ptr<PaxosAppClient> paxosAppClient = ns3::CreateObject<PaxosAppClient>(m_serverInfoList);
+        if (m_paxosConfig.isSynchronous)
+        {
+            uint32_t interval = ns3::Time(m_paxosConfig.boundedMessageDelay).GetNanoSeconds() / 10;
+            paxosAppClient->SetSendInterval(ns3::Time(std::to_string(interval) + "ns"));
+        }
+        else
+        {
+            uint32_t interval = ns3::Time(m_paxosConfig.linkDelay).GetNanoSeconds() / 5;
+            paxosAppClient->SetSendInterval(ns3::Time(std::to_string(interval) + "ns"));
+        }
         m_paxosAppClientContainer.Add(paxosAppClient);
         node->AddApplication(paxosAppClient);
     }
@@ -193,17 +222,19 @@ PaxosTopologyClos::InitPaxosClientCluster(std::vector<uint32_t> spineIdList) {
     return ret;
 }
 
-void
-PaxosTopologyClos::SetPaxosServerAppStartStop(ns3::Time start, ns3::Time end) {
-    for (auto it = m_paxosAppServerContainer.Begin(); it != m_paxosAppServerContainer.End(); it++) {
+void PaxosTopologyClos::SetPaxosServerAppStartStop(ns3::Time start, ns3::Time end)
+{
+    for (auto it = m_paxosAppServerContainer.Begin(); it != m_paxosAppServerContainer.End(); it++)
+    {
         (*it)->SetStartTime(start);
         (*it)->SetStopTime(end);
     }
 }
 
-void
-PaxosTopologyClos::SetPaxosClientAppStartStop(ns3::Time start, ns3::Time end) {
-    for (auto it = m_paxosAppClientContainer.Begin(); it != m_paxosAppClientContainer.End(); it++) {
+void PaxosTopologyClos::SetPaxosClientAppStartStop(ns3::Time start, ns3::Time end)
+{
+    for (auto it = m_paxosAppClientContainer.Begin(); it != m_paxosAppClientContainer.End(); it++)
+    {
         (*it)->SetStartTime(start);
         (*it)->SetStopTime(end);
     }

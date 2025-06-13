@@ -67,6 +67,12 @@ void PaxosAppServer::ReceiveRequest(ns3::Ptr<ns3::Socket> socket)
 
 void PaxosAppServer::CreateProposalFromRequest(RequestFrame requestFrame)
 {
+    // Set the queue length limit to 1000
+    if (m_waitingProposals.size() > 1000)
+    {
+        return;
+    }
+
     std::shared_ptr<Proposal> proposal = std::make_shared<Proposal>();
 
     // use the timestamp as proposal id

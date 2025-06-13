@@ -11,6 +11,7 @@ PaxosAppClient::PaxosAppClient(NodeInfoList nodes)
 {
     NS_LOG_FUNCTION(this);
     m_servers = nodes;
+    m_sendInterval = ns3::MilliSeconds(1);
 }
 
 PaxosAppClient::~PaxosAppClient()
@@ -113,6 +114,13 @@ PaxosAppClient::SendRequest()
     uint32_t interval = m_sendRandom->GetInteger();
 
     // Simulator::Schedule() takes a time and a function
-    ns3::Simulator::Schedule(ns3::NanoSeconds(interval*10), &PaxosAppClient::SendRequest, this);
+    ns3::Simulator::Schedule(m_sendInterval, &PaxosAppClient::SendRequest, this);
 
+}
+
+void
+PaxosAppClient::SetSendInterval(ns3::Time interval)
+{
+    NS_LOG_FUNCTION(this);
+    m_sendInterval = interval;
 }

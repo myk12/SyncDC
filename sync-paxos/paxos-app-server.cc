@@ -64,7 +64,7 @@ void PaxosAppServer::StartApplication(void)
     NS_LOG_INFO("Leader: " << s_leader << " Propose timeout: " << s_proposeTimeout.GetMilliSeconds() << "ms");
 
     // Calculate the proposal period, only used for synchronous manner
-    m_proposePeriod = 2 * m_clockSyncError + m_boundedMessageDelay;
+    m_proposePeriod = (2 * m_clockSyncError + m_boundedMessageDelay) * m_numNodes;
     NS_LOG_INFO("Clock sync error: " << m_clockSyncError.GetNanoSeconds() << "ns, Bounded message delay: " << m_boundedMessageDelay.GetNanoSeconds() << "ns");
     NS_LOG_INFO("Proposal period: " << m_proposePeriod.GetNanoSeconds() << "ns");
 
@@ -285,6 +285,7 @@ void PaxosAppServer::DoReceivedAcceptMessage(PaxosFrame frame)
     if (proposal->getNumAck() > (m_numNodes / 2) && proposal->getDecisionTime().IsZero())
     {
         proposal->setDecisionTime(ns3::Simulator::Now());
+        proposal->setNumDecisionAck(1);
         SendDecisionMessage(frame);
 
         // If in sync mode, we can remove the proposal from the map
@@ -400,16 +401,19 @@ void PaxosAppServer::DoReceivedDecisionAckMessage(PaxosFrame frame)
         proposal->incrementNumDecisionAck();
 
         // If the proposal has enough decision acks, send a decision message
-        if (proposal->getNumDecisionAck() >= (m_numNodes / 2))
+        if (proposal->getNumDecisionAck() > (m_numNodes / 2) && proposal->getDecisionAckTime().IsZero())
         {
             // Add to our decided proposals queue
             NS_LOG_INFO("PaxosAppServer " << m_nodeId << " adding proposal ID " << proposalId << " to decided proposals queue.");
-            proposal->setDecisionTime(ns3::Simulator::Now());
+            proposal->setDecisionAckTime(ns3::Simulator::Now());
 
             // Now we can push proposal into the queue
             m_decidedProposalQueue.push(proposal);
             // Remove the proposal from the map
             m_proposals.erase(proposalId);
+
+            // And now we can do a new proposal
+            DoAsyncPropose();
         }
     }
 }

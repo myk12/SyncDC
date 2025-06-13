@@ -15,7 +15,7 @@ void PaxosAppServer::StartProposerThread()
             // I am the leader
             // Do Propose
             m_leaderState = PAXOS_LEADER_WAITING_REQUEST;
-            DoSyncPropose();
+            DoAsyncPropose();
         }
         else
         {
@@ -27,7 +27,8 @@ void PaxosAppServer::StartProposerThread()
     {
         // This is the synchronous mode
         // Calculate when to start the proposer
-        m_proposeEvent = ns3::Simulator::Schedule(m_serverId * m_proposePeriod, &PaxosAppServer::DoSyncPropose, this);
+        ns3::Time firstProposeTime = m_serverId * (2*m_clockSyncError + m_boundedMessageDelay);
+        m_proposeEvent = ns3::Simulator::Schedule(firstProposeTime, &PaxosAppServer::DoSyncPropose, this);
     }
 }
 
@@ -63,7 +64,7 @@ PaxosAppServer::DoSyncPropose()
 int32_t
 PaxosAppServer::DoAsyncPropose()
 {
-    NS_LOG_INFO("PaxosAppServer " << m_serverId << " DoAsyncPropose");
+    //NS_LOG_INFO("PaxosAppServer " << m_serverId << " DoAsyncPropose");
 
     // If App is all ready stopped, do not propose
     if (ns3::Simulator::Now() >= m_stopTime)
@@ -78,12 +79,12 @@ PaxosAppServer::DoAsyncPropose()
         m_leaderState = PAXOS_LEADER_PROPOSED;
 
         // Set a timer to check if there is a timeout
-        ns3::Simulator::Schedule(s_proposeTimeout, &PaxosAppServer::proposeTimerExpired, this, proposalId);
+        //ns3::Simulator::Schedule(s_proposeTimeout, &PaxosAppServer::proposeTimerExpired, this, proposalId);
     }
     else
     {
         // There is no proposal in the queue
-        ns3::Simulator::Schedule(ns3::NanoSeconds(10), &PaxosAppServer::DoAsyncPropose, this);
+        ns3::Simulator::Schedule(ns3::MicroSeconds(1), &PaxosAppServer::DoAsyncPropose, this);
     }
 
     return 0;
@@ -111,6 +112,7 @@ uint64_t PaxosAppServer::DoPropose()
     proposal->setProposeTime(ns3::Simulator::Now());
     proposal->setNumAck(1);
     proposal->setPropState(Proposal::TO_BE_ACCEPTED);
+    proposal->setNumDecisionAck(1);
 
     // Send Proposal to all nodes
     // Packet Header
