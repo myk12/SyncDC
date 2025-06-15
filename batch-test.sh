@@ -20,9 +20,9 @@ fi
 ################################################    
 # Change parameters and run the program
 # Message Delay Bound Array
-delay_bound_arr=(100000 10000 1000 100 10)
+delay_bound_arr=(50000 5000 500 50 5)
 # Sync Error Parameter Array
-sync_error_arr=(100000 10000 1000 100 10)
+sync_error_arr=(50000 5000 500 50 5)
 
 mkdir -p result/Sync
 
@@ -31,10 +31,10 @@ do
     for j in "${sync_error_arr[@]}"
     do
         mkdir -p result/Sync/Delay_${i}us/Sync_${j}ns
-        
+       
         ./build/bin/sync-paxos --sync=1 --clockSyncError=${j}ns --boundedMessageDelay=${i}us
 
-        # move the result to the result folder
+       # move the result to the result folder
         mv *.dat result/Sync/Delay_${i}us/Sync_${j}ns/
     done
 done
@@ -45,7 +45,7 @@ done
 
 # Change parameters and run the program
 # Message Delay
-delay_arr=(100000 10000 1000 100 10)
+delay_arr=(50000 5000 500 50 5)
 
 mkdir -p result/Async
 
