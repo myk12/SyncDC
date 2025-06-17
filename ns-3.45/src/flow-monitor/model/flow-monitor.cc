@@ -338,14 +338,14 @@ FlowMonitor::CheckForLostPackets(Time maxDelay)
 void
 FlowMonitor::CheckForLostPackets()
 {
-    CheckForLostPackets(m_maxPerHopDelay);
+    //CheckForLostPackets(m_maxPerHopDelay);
 }
 
 void
 FlowMonitor::PeriodicCheckForLostPackets()
 {
     CheckForLostPackets();
-    Simulator::Schedule(PERIODIC_CHECK_INTERVAL, &FlowMonitor::PeriodicCheckForLostPackets, this);
+    //Simulator::Schedule(PERIODIC_CHECK_INTERVAL, &FlowMonitor::PeriodicCheckForLostPackets, this);
 }
 
 void
