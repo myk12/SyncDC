@@ -62,6 +62,9 @@ typedef struct PaxosConfig {
     std::string configFilePath = "";
 
     ns3::Time serverTimeout = ns3::MilliSeconds(300);
+
+    // 5. Flow Monitor
+    bool enableFlowMonitor = true;
 } PaxosConfig;
 
 class Proposal {
@@ -134,6 +137,8 @@ private:
     
     PropState m_propState;      // State of the proposal
 };
+
+std::string Ipv4int2string(uint32_t ip);
 
 
 #endif // COMMON_HH

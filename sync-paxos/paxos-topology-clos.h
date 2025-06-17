@@ -9,6 +9,7 @@
 #include "ns3/applications-module.h"
 #include "ns3/ipv4-list-routing-helper.h"
 #include "ns3/ipv4-static-routing-helper.h"
+#include "ns3/flow-monitor-module.h"
 
 #include "paxos-common.h"
 #include "paxos-app-server.h"
@@ -17,6 +18,8 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+
+#include <yaml-cpp/yaml.h>
 
 // This is a simple topology for a Clos network
 
@@ -43,6 +46,8 @@ public:
 
     void SetPaxosServerAppStartStop(ns3::Time start, ns3::Time end);
     void SetPaxosClientAppStartStop(ns3::Time start, ns3::Time end);
+
+    void ExportTopologyToYaml(const std::string& filename);
 
 private:
     ns3::NodeContainer m_spineNodes;

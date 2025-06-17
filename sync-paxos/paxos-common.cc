@@ -132,3 +132,10 @@ ns3::Time
 Proposal::getDecisionAckTime() {
     return m_decisionAckTime;
 }
+
+std::string
+Ipv4int2string(uint32_t ip) {
+    std::stringstream ss;
+    ss << ((ip >> 24) & 0xFF) << "." << ((ip >> 16) & 0xFF) << "." << ((ip >> 8) & 0xFF) << "." << (ip & 0xFF);
+    return ss.str();
+}

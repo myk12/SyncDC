@@ -4,6 +4,7 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/csma-module.h"
 #include "ns3/applications-module.h"
+#include "ns3/flow-monitor-module.h"
 
 #include "paxos-app-server.h"
 #include "paxos-frame.h"
@@ -26,12 +27,12 @@ int main(int argc, char *argv[])
 
     ns3::LogComponentEnableAll(ns3::LOG_PREFIX_TIME);
     ns3::LogComponentEnableAll(ns3::LOG_PREFIX_NODE);
-    ns3::LogComponentEnable("PaxosAppClient", ns3::LOG_DEBUG);
+    ns3::LogComponentEnable("PaxosAppClient", ns3::LOG_INFO);
     ns3::LogComponentEnable("SyncPaxos", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosAppServer", ns3::LOG_INFO);
-    ns3::LogComponentEnable("PaxosFrame", ns3::LOG_DEBUG);
-    ns3::LogComponentEnable("PaxosAppServerListener", ns3::LOG_DEBUG);
-    ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_DEBUG);
+    ns3::LogComponentEnable("PaxosFrame", ns3::LOG_INFO);
+    ns3::LogComponentEnable("PaxosAppServerListener", ns3::LOG_INFO);
+    ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosTopologyClos", ns3::LOG_INFO);
 
     ns3::CommandLine cmd;
@@ -131,8 +132,29 @@ int main(int argc, char *argv[])
     topology.SetPaxosServerAppStartStop(start, end);
     topology.SetPaxosClientAppStartStop(start, end);
 
+    topology.ExportTopologyToYaml("paxos-topology.yaml");
+
+    // Populate the Routing table
+    ns3::Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+
+    // Flow Monitor
+    ns3::Ptr<ns3::FlowMonitor> flowMonitor;
+    ns3::FlowMonitorHelper flowHelper;
+    if (g_paxosConfig.enableFlowMonitor)
+    {
+        NS_LOG_INFO("Enabling Flow Monitor");
+        flowMonitor = flowHelper.InstallAll();
+    }
+
     // Run the simulation
     ns3::Simulator::Run();
     ns3::Simulator::Destroy();
+
+    NS_LOG_INFO("Saving Flow Monitor Data");
+    if (g_paxosConfig.enableFlowMonitor)
+    {
+        flowMonitor->SerializeToXmlFile("sync-paxos-flow-monitor.xml", true, true);
+    }
+
     return 0;
 }
