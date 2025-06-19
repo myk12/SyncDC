@@ -18,3 +18,6 @@ link_libraries(ns3::network ns3::internet ns3::point-to-point ns3::applications)
 # Paxos module
 set(PAXOS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/sync-paxos")
 add_subdirectory(${PAXOS_SOURCE_DIR} ${CMAKE_BINARY_DIR}/sync-paxos_build)
+
+# Add Sync DCN directory
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/sync-dcn ${CMAKE_BINARY_DIR}/sync-dcn_build)
