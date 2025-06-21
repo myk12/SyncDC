@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     ns3::LogComponentEnable("PaxosFrame", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosAppServerListener", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_INFO);
-    ns3::LogComponentEnable("PaxosTopologyClos", ns3::LOG_INFO);
+    ns3::LogComponentEnable("SyncDCTopologySpineLeaf", ns3::LOG_INFO);
 
     ns3::CommandLine cmd;
 
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
 
     // Define the topology
     NS_LOG_INFO("Creating Clos topology with " << numSpine << " spines, " << numLeaf << " leaves, " << numHostsPerLeaf << " hosts per leaf, " << bandwidthLeaf2Spine << " bandwidth leaf to spine, " << delayLeaf2Spine << " delay leaf to spine, " << bandwidthHost2Leaf << " bandwidth host to leaf, " << delayHost2Leaf << " delay host to leaf");
-    PaxosTopologyClos topology(
+    SyncDCTopologySpineLeaf topology(
         numSpine,
         numLeaf,
         numHostsPerLeaf,

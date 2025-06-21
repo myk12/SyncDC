@@ -23,9 +23,9 @@
 
 // This is a simple topology for a Clos network
 
-class PaxosTopologyClos {
+class SyncDCTopologySpineLeaf {
 public:
-    PaxosTopologyClos(uint32_t numSpines,
+    SyncDCTopologySpineLeaf(uint32_t numSpines,
                       uint32_t numLeaves,
                       uint32_t numHostsPerLeaf,
                       std::string bandwidthLeaf2Spine,
@@ -33,7 +33,7 @@ public:
                       std::string bandwidthHost2Leaf,
                       std::string delayHost2Leaf,
                       PaxosConfig paxosConfig);
-    ~PaxosTopologyClos();
+    ~SyncDCTopologySpineLeaf();
 
     ns3::Ipv4Address GetSpineAddress(uint32_t spineId);
     ns3::Ipv4Address GetLeafAddress(uint32_t spineId, uint32_t leafId);

@@ -1,8 +1,8 @@
 #include "paxos-topology-clos.h"
 
-NS_LOG_COMPONENT_DEFINE("PaxosTopologyClos");
+NS_LOG_COMPONENT_DEFINE("SyncDCTopologySpineLeaf");
 
-PaxosTopologyClos::PaxosTopologyClos(uint32_t numSpines,
+SyncDCTopologySpineLeaf::SyncDCTopologySpineLeaf(uint32_t numSpines,
                                      uint32_t numLeaves,
                                      uint32_t numHostsPerLeaf,
                                      std::string bandwidthLeaf2Spine,
@@ -113,27 +113,27 @@ PaxosTopologyClos::PaxosTopologyClos(uint32_t numSpines,
     }
 }
 
-PaxosTopologyClos::~PaxosTopologyClos()
+SyncDCTopologySpineLeaf::~SyncDCTopologySpineLeaf()
 {
 }
 
-ns3::Ipv4Address PaxosTopologyClos::GetSpineAddress(uint32_t spineId)
+ns3::Ipv4Address SyncDCTopologySpineLeaf::GetSpineAddress(uint32_t spineId)
 {
     return m_spineLeafInterfaceMatrix[spineId][0].GetAddress(1);
 }
 
-ns3::Ipv4Address PaxosTopologyClos::GetLeafAddress(uint32_t spineId, uint32_t leafId)
+ns3::Ipv4Address SyncDCTopologySpineLeaf::GetLeafAddress(uint32_t spineId, uint32_t leafId)
 {
     return m_spineLeafInterfaceMatrix[spineId][leafId].GetAddress(1);
 }
 
-ns3::Ipv4Address PaxosTopologyClos::GetHostAddress(uint32_t leafId, uint32_t hostId)
+ns3::Ipv4Address SyncDCTopologySpineLeaf::GetHostAddress(uint32_t leafId, uint32_t hostId)
 {
     return m_hostLeafInterfaceMatrix[leafId][hostId].GetAddress(1);
 }
 
 int32_t
-PaxosTopologyClos::InitPaxosServerCluster(std::vector<std::pair<uint32_t, uint32_t>> hostIdList)
+SyncDCTopologySpineLeaf::InitPaxosServerCluster(std::vector<std::pair<uint32_t, uint32_t>> hostIdList)
 {
     NS_LOG_INFO("Initializing Paxos servers");
     int32_t ret = 0;
@@ -190,7 +190,7 @@ PaxosTopologyClos::InitPaxosServerCluster(std::vector<std::pair<uint32_t, uint32
 }
 
 int32_t
-PaxosTopologyClos::InitPaxosClientCluster(std::vector<uint32_t> spineIdList)
+SyncDCTopologySpineLeaf::InitPaxosClientCluster(std::vector<uint32_t> spineIdList)
 {
     NS_LOG_INFO("Initializing Paxos clients");
     int32_t ret = 0;
@@ -219,7 +219,7 @@ PaxosTopologyClos::InitPaxosClientCluster(std::vector<uint32_t> spineIdList)
     return ret;
 }
 
-void PaxosTopologyClos::SetPaxosServerAppStartStop(ns3::Time start, ns3::Time end)
+void SyncDCTopologySpineLeaf::SetPaxosServerAppStartStop(ns3::Time start, ns3::Time end)
 {
     for (auto it = m_paxosAppServerContainer.Begin(); it != m_paxosAppServerContainer.End(); it++)
     {
@@ -228,7 +228,7 @@ void PaxosTopologyClos::SetPaxosServerAppStartStop(ns3::Time start, ns3::Time en
     }
 }
 
-void PaxosTopologyClos::SetPaxosClientAppStartStop(ns3::Time start, ns3::Time end)
+void SyncDCTopologySpineLeaf::SetPaxosClientAppStartStop(ns3::Time start, ns3::Time end)
 {
     for (auto it = m_paxosAppClientContainer.Begin(); it != m_paxosAppClientContainer.End(); it++)
     {
@@ -239,7 +239,7 @@ void PaxosTopologyClos::SetPaxosClientAppStartStop(ns3::Time start, ns3::Time en
 
 // Your existing methods (GetSpineAddress, GetLeafAddress, GetHostAddress, InitPaxosServerCluster, InitPaxosClientCluster, SetPaxosServerAppStartStop, SetPaxosClientAppStartStop)...
 
-void PaxosTopologyClos::ExportTopologyToYaml(const std::string& filename)
+void SyncDCTopologySpineLeaf::ExportTopologyToYaml(const std::string& filename)
 {
     NS_LOG_INFO("Exporting topology to YAML file: " << filename);
 
