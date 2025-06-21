@@ -16,14 +16,24 @@ include_directories(${ML_SOURCE_DIR} ${TOPO_SOURCE_DIR})
 set(ML_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/machine-learning")
 
 set(SOURCE_FILES
-    ${ML_SOURCE_DIR}/main.cc
+    ${ML_SOURCE_DIR}/ml-main.cc
+    ${ML_SOURCE_DIR}/ml-common.cc
     ${ML_SOURCE_DIR}/app-all-reduce.cc
+    ${ML_SOURCE_DIR}/app-ring-allreduce.cc
+    ${ML_SOURCE_DIR}/app-ocs-allreduce.cc
+    ${ML_SOURCE_DIR}/ocs-test.cc
+    ${ML_SOURCE_DIR}/spine-leaf-test.cc
     ${TOPO_SOURCE_DIR}/spine-leaf.cc
+    ${TOPO_SOURCE_DIR}/optical-circuit-switching.cc
 )
 
 set(HEADER_FILES
+    ${ML_SOURCE_DIR}/ml-common.h
     ${ML_SOURCE_DIR}/app-all-reduce.h
+    ${ML_SOURCE_DIR}/app-ring-allreduce.h
+    ${ML_SOURCE_DIR}/app-ocs-allreduce.h
     ${TOPO_SOURCE_DIR}/spine-leaf.h
+    ${TOPO_SOURCE_DIR}/optical-circuit-switching.h
 )
 
 add_executable(ml-allreduce ${SOURCE_FILES} ${HEADER_FILES})

@@ -1,0 +1,12 @@
+network-topology :
+  name : OCS
+  parameters :
+    total_servers : 32
+    link_bandwidth : "100Gbps"
+    link_delay : "10us"
+    reconf_time: "10us"
+    sync_error : "100ns"
+allreduce:
+  name: ring-allreduce
+  parameters:
+    msg_size: 32 #MB

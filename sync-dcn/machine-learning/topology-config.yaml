@@ -1,9 +1,0 @@
-network-topology :
-  name : spine-leaf
-  parameters :
-    spine_count : 2
-    leaf_count : 4
-    servers_per_leaf : 8
-    total_servers : 32
-    link_bandwidth : "100Gbps"
-    link_delay : "10us"

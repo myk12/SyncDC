@@ -11,18 +11,17 @@
 
 #define ALL_REDUCE_PORT 10000
 #define MAX_PACKET_SIZE 1024
-#define TARGET_BYTES (32 * 1024 * 1024)
+#define TARGET_BYTES (32 * 1024)
 
 class AppAllReduce : public ns3::Application {
-public:
-    
+public: 
+    static ns3::TypeId GetTypeId();
     AppAllReduce();
     ~AppAllReduce();
     void InitClusterInfo(uint32_t self_id,
                          const std::vector<ns3::Ipv4Address>& serverAddrs);
+    void SetSendStartTime(ns3::Time startTime);
 
-    static ns3::TypeId GetTypeId();
-    
     void StartApplication();
     void StopApplication();
 
@@ -38,6 +37,8 @@ private:
     uint32_t m_selfId;
     uint64_t m_targetBytes;
     uint32_t m_okServerNum;
+
+    ns3::Time m_sendStartTime;
 
     std::string m_logfilename;
 

@@ -38,8 +38,15 @@ void AppAllReduce::InitClusterInfo(uint32_t self_id, const std::vector<ns3::Ipv4
         app->SetAttribute("MaxBytes", ns3::UintegerValue(m_targetBytes));
         GetNode()->AddApplication(app);
         m_bulkSendApps.Add(app);
-    }    
+    }
+}
 
+void
+AppAllReduce::SetSendStartTime(ns3::Time startTime)
+{
+    NS_LOG_FUNCTION(this << startTime);
+    m_sendStartTime = startTime;
+    m_bulkSendApps.Start(m_sendStartTime);
 }
 
 void AppAllReduce::StartApplication()
@@ -72,7 +79,7 @@ void AppAllReduce::StartApplication()
                                       ns3::MakeCallback(&AppAllReduce::HandlePeerError, this));
 
     // set default targetbytes
-    m_targetBytes = 32 * 1024;
+    m_targetBytes = TARGET_BYTES;
     NS_LOG_INFO("Target bytes: " << m_targetBytes);
 
     // clear m_recvBytes
@@ -109,7 +116,7 @@ void AppAllReduce::HandleRead(ns3::Ptr<ns3::Socket> socket)
     fromId = GetServerIdByAddress(fromAddr);
     if (fromId < 0 || fromId >= m_id2ServerAddr.size())
     {
-        NS_FATAL_ERROR("Unknown sender address");
+        NS_FATAL_ERROR("Unknown sender address: " << fromAddr << std::endl);
     }
 
     ns3::Ptr<ns3::Packet> packet;
