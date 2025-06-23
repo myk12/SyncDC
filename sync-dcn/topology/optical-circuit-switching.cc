@@ -11,16 +11,15 @@
 NS_LOG_COMPONENT_DEFINE("SyncDCTopologyOCS");
 
 SyncDCTopologyOCS::SyncDCTopologyOCS(YAML::Node& config) {
-    YAML::Node topoParam = config["network-topology"]["parameters"];
+    YAML::Node topoParam = config["network-topology"]["OCS"];
     // Get total servers
     m_reConfTime = ns3::Time(topoParam["reconf_time"].as<std::string>());
     m_syncErrorTime = ns3::Time(topoParam["sync_error"].as<std::string>());
-    uint32_t num_servers = topoParam["total_servers"].as<uint32_t>();
-    std::string link_bandwidth = topoParam["link_bandwidth"].as<std::string>();
-    std::string link_delay = topoParam["link_delay"].as<std::string>();
-
+    m_linkBandwidth = topoParam["link_bandwidth"].as<std::string>();
+    m_linkDelay = topoParam["link_delay"].as<std::string>();
+    m_numNodes = topoParam["total_servers"].as<uint32_t>();
     // Create Nodes and Connect them with Point-to-Point Links
-    m_Nodes.Create(num_servers);
+    m_Nodes.Create(m_numNodes);
 
     // Install Internet Stack
     ns3::InternetStackHelper stack;
@@ -28,17 +27,18 @@ SyncDCTopologyOCS::SyncDCTopologyOCS(YAML::Node& config) {
 
     // Create Point-to-Point Links
     ns3::PointToPointHelper p2p;
-    p2p.SetDeviceAttribute("DataRate", ns3::StringValue(link_bandwidth));
-    p2p.SetChannelAttribute("Delay", ns3::StringValue(link_delay));
+    p2p.SetDeviceAttribute("DataRate", ns3::StringValue(m_linkBandwidth));
+    p2p.SetChannelAttribute("Delay", ns3::StringValue(m_linkDelay));
 
     ns3::Ipv4AddressHelper ipv4;
     ipv4.SetBase("10.0.0.0", "255.0.0.0");
 
-    for (uint32_t i = 0; i < num_servers; i++)
+    for (uint32_t i = 0; i < m_numNodes; i++)
     {
         std::vector<ns3::NetDeviceContainer> linkArray;
         std::vector<ns3::Ipv4InterfaceContainer> ipArray;
-        for (uint32_t j = i + 1; j < num_servers; j++)
+        std::vector<ns3::Ipv4Address> nodeAddrArray;
+        for (uint32_t j = i + 1; j < m_numNodes; j++)
         {
             // Install P2P links between nodes
             ns3::NetDeviceContainer link = p2p.Install(m_Nodes.Get(i), m_Nodes.Get(j));
@@ -47,7 +47,15 @@ SyncDCTopologyOCS::SyncDCTopologyOCS(YAML::Node& config) {
             // Assign IP addresses to the devices
             ns3::Ipv4InterfaceContainer ip = ipv4.Assign(link);
             ipArray.push_back(ip);
+            // Store the IP addresses for later use
+            m_MapId2Addr[i][j] = ip.GetAddress(0);
+            m_MapId2Addr[j][i] = ip.GetAddress(1);
+            m_MapId2Addr[i][i] = ip.GetAddress(0); // Self address 
+            m_MapId2Addr[j][j] = ip.GetAddress(1); // Self address
+            m_MapAddr2Id[ip.GetAddress(0)] = i;
+            m_MapAddr2Id[ip.GetAddress(1)] = j;
         }
+
         m_linkMatrix.push_back(linkArray);
         m_ipMatrix.push_back(ipArray);
     }
@@ -65,12 +73,6 @@ ns3::NodeContainer
 SyncDCTopologyOCS::GetNodes()
 {
     return m_Nodes;
-}
-
-ns3::Ipv4Address
-SyncDCTopologyOCS::GetNodeAddr(uint32_t nodeIndex)
-{
-    return m_ipMatrix[nodeIndex][0].GetAddress(1);
 }
 
 void
@@ -123,4 +125,29 @@ std::string
 SyncDCTopologyOCS::GetLinkDelay()
 {
     return m_linkDelay;
+}
+
+ns3::Ipv4Address
+SyncDCTopologyOCS::GetNodeAddr(uint32_t nodeId)
+{
+    NS_LOG_FUNCTION(this << nodeId);
+    return GetNodeAddr(nodeId, 0);
+}
+
+ns3::Ipv4Address
+SyncDCTopologyOCS::GetNodeAddr(uint32_t nodeId, uint32_t targetId)
+{
+    NS_LOG_FUNCTION(this << nodeId << targetId);
+    if (nodeId >= m_numNodes || targetId >= m_numNodes) {
+        NS_LOG_ERROR("Node ID " << nodeId << " or " << targetId << " is out of range");
+        return ns3::Ipv4Address();
+    }
+
+    return m_MapId2Addr[nodeId][targetId];
+}
+
+std::map<ns3::Ipv4Address, uint32_t>
+SyncDCTopologyOCS::GetMapAddr2Id()
+{
+    return m_MapAddr2Id;
 }

@@ -2,31 +2,27 @@
 
 NS_LOG_COMPONENT_DEFINE("MLCommon");
 
-// Bandwidth Sting format: 100Gbps, 10Gbps, 1Gbps, 100Mbps, 10Mbps, 1Mbps
+// Bandwidth Sting format: 100Gbps, 10Gbps, 1Gbps
 uint64_t
 BandwidthStr2Bps(std::string bandwidthStr)
 {
     // Get number
-    std::string numberStr = bandwidthStr.substr(bandwidthStr.find("bps") - 1);
-    uint64_t number = std::stoull(numberStr);
+    std::string numStr = bandwidthStr.substr(0, bandwidthStr.length() - 4);
 
-    // Get unit
-    std::string unitStr = bandwidthStr.substr(bandwidthStr.find("bps") + 3);
-    uint64_t unit = 1;
-    if (unitStr == "Gbps") {
-        unit = 1000000000;
-    } else if (unitStr == "Mbps") {
-        unit = 1000000;
-    } else if (unitStr == "Kbps") {
-        unit = 1000;
-    } else if (unitStr == "bps") {
-        unit = 1;
+    uint64_t number = std::stoull(numStr);
+    NS_LOG_UNCOND("Bandwidth number: " << number);
+    uint64_t unit = 1; // Default is bps
+    if (bandwidthStr.find("Gbps") != std::string::npos) {
+        NS_LOG_UNCOND("Bandwidth unit: Gbps");
+        unit = 1000000000; // 1 Gbps = 10^9
+    } else if (bandwidthStr.find("Mbps") != std::string::npos) {
+        unit = 1000000; // 1 Mbps = 10^6
+    } else if (bandwidthStr.find("Kbps") != std::string::npos) {
+        unit = 1000; // 1 Kbps = 10^3
     } else {
-        NS_LOG_ERROR("Unsupport bandwidth unit: " << unitStr);
+        NS_FATAL_ERROR("Unsupport bandwidth unit: " << bandwidthStr);
     }
-
-    // Note we are returning Bytes not bits
-    return number * unit / 8;
+    return number * unit / 8; // Convert to bytes per second
 }
 
 // Delay String format: 100ms, 10ms, 1ms, 100us, 10us, 1us, 100ns, 10ns, 1ns

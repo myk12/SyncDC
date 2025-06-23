@@ -13,7 +13,7 @@ SyncDCTopologySpineLeaf::SyncDCTopologySpineLeaf(YAML::Node &config)
 {
     NS_LOG_INFO("Creating Spine-Leaf topology");
     // Parse config
-    YAML::Node topoParams  = config["network-topology"]["parameters"];
+    YAML::Node topoParams  = config["network-topology"]["Spine-leaf"];
 
     uint32_t numSpines = topoParams["spine_count"].as<uint32_t>();
     uint32_t numLeaves = topoParams["leaf_count"].as<uint32_t>();

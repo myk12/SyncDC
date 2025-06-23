@@ -15,23 +15,25 @@ InitOCSTest(std::shared_ptr<SyncDCTopologyOCS> topology)
     NS_LOG_INFO("Init OCS Test");
     ns3::NodeContainer nodes = topology->GetNodes();
 
-    // Get All Server Addr Info
-    NS_LOG_INFO("Get All Server Addr Info");
-    std::vector<ns3::Ipv4Address> serverAddrs;
-    serverAddrs.reserve(nodes.GetN());
-    for (uint32_t i = 0; i < nodes.GetN(); i++) {
-        serverAddrs.push_back(topology->GetNodeAddr(i));
-    }
-
     // Install AllReduce Application
     NS_LOG_INFO("Install AllReduce Application");
     for (uint32_t i = 0; i < nodes.GetN(); i++) {
+        std::vector<ns3::Ipv4Address> serversAddrlist;
+        // Get target addresses for this server
+        for (uint32_t j = 0; j < nodes.GetN(); j++)
+        {
+            //NS_LOG_INFO("Server " << i << " will connect to server " << j);
+            serversAddrlist.push_back(topology->GetNodeAddr(j, i));
+        }
+
+        NS_LOG_INFO("Creating AppOCSAllReduce for server " << i << "");
         ns3::Ptr<AppOCSAllReduce> app = ns3::CreateObject<AppOCSAllReduce>(
-            i, serverAddrs, 
+            i, serversAddrlist,
             topology->GetLinkDelay(), 
             topology->GetLinkBandwidth(), 
             topology->GetReConfTime(), 
-            topology->GetSyncErrorTime());
+            topology->GetSyncErrorTime(),
+            topology->GetMapAddr2Id());
         
         app->SetStartTime(ns3::Seconds(0.0));
         nodes.Get(i)->AddApplication(app);

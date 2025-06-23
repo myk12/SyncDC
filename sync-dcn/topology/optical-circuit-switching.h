@@ -18,13 +18,15 @@ public:
     ~SyncDCTopologyOCS();
 
     ns3::NodeContainer GetNodes();
-    ns3::Ipv4Address GetNodeAddr(uint32_t nodeIndex);
-
+    ns3::Ipv4Address GetNodeAddr(uint32_t nodeId);
+    ns3::Ipv4Address GetNodeAddr(uint32_t nodeId, uint32_t targetId);
+    
     std::vector<CircuitMatrix> GetCircuitMatrix();
     ns3::Time GetReConfTime();
     ns3::Time GetSyncErrorTime();
     std::string GetLinkBandwidth();
     std::string GetLinkDelay();
+    std::map<ns3::Ipv4Address, uint32_t> GetMapAddr2Id();
 
     void GenerateCircuitMatrix();
 private:
@@ -37,6 +39,8 @@ private:
     std::vector<std::vector<ns3::NetDeviceContainer>> m_linkMatrix;
     std::vector<std::vector<ns3::Ipv4InterfaceContainer>> m_ipMatrix;
     std::vector<CircuitMatrix> m_circuitMatrix;
+    std::map<uint32_t, std::map<uint32_t, ns3::Ipv4Address>> m_MapId2Addr;
+    std::map<ns3::Ipv4Address, uint32_t> m_MapAddr2Id;
 };
 
 #endif

@@ -10,9 +10,11 @@
 
 #include <yaml-cpp/yaml.h>
 #include <vector>
+#include <fstream>
 
 #define RING_ALL_REDUCE_PORT 9999
-#define RING_ALL_REDUCE_DATA_SIZE 32*1024*1024
+#define RING_ALL_REDUCE_DATA_SIZE 2 * 1024 * 1024
+#define LOG_DIR "RingAllReduce/"
 
 class AppRingAllReduce : public ns3::Application {
     public:
@@ -53,6 +55,9 @@ class AppRingAllReduce : public ns3::Application {
         ns3::InetSocketAddress m_sendAddr;
         std::map<uint32_t, uint64_t> m_sendBytes;
         std::map<uint32_t, ns3::Ptr<ns3::Application>> m_sendApps;
+
+        // Log file
+        std::ofstream m_logfile;
 };
 
 #endif

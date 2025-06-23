@@ -4,8 +4,8 @@ network-topology :
     total_servers : 32
     link_bandwidth : "100Gbps"
     link_delay : "10us"
-    reconf_time: "10us"
-    sync_error : "100ns"
+    reconf_time: "100us"
+    sync_error : "10ns"
 allreduce:
   name: ring-allreduce
   parameters:

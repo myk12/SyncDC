@@ -8,21 +8,26 @@
 #include "ns3/applications-module.h"
 
 #define OCS_ALL_REDUCE_PORT 9997
-#define OCS_ALL_REDUCE_DATA_SIZE 32*1024*1024
+#define OCS_ALL_REDUCE_DATA_SIZE 2 * 1024 * 1024
+#define OCS_ALL_REDUCE_PACKET_SIZE 1024
+#define LOG_DIR "OCSAllReduce/"
 
 #include <yaml-cpp/yaml.h>
 #include <vector>
+#include <fstream>
 
 #include "ml-common.h"
 
-class AppOCSAllReduce : public ns3::Application {
+class AppOCSAllReduce : public ns3::Application
+{
 public:
     static ns3::TypeId GetTypeId(void);
     AppOCSAllReduce();
-    AppOCSAllReduce(uint32_t selfId, 
+    AppOCSAllReduce(uint32_t selfId,
                     std::vector<ns3::Ipv4Address> serversAddr,
                     std::string linkDelay, std::string linkBandwidth,
-                    ns3::Time reConfTime, ns3::Time syncErrorTime);
+                    ns3::Time reConfTime, ns3::Time syncErrorTime,
+                    std::map<ns3::Ipv4Address, uint32_t> MapAddr2Id);
     ~AppOCSAllReduce();
 
     void StartApplication(void);
@@ -33,13 +38,14 @@ public:
 
     // Recv functions
     void RecvDataCallback(ns3::Ptr<ns3::Socket> socket);
-    bool RequestCallback(ns3::Ptr<ns3::Socket> socket, const ns3::Address& from);
-    void AcceptCallback(ns3::Ptr<ns3::Socket> socket, const ns3::Address& from);
+    bool RequestCallback(ns3::Ptr<ns3::Socket> socket, const ns3::Address &from);
+    void AcceptCallback(ns3::Ptr<ns3::Socket> socket, const ns3::Address &from);
     void PeerCloseCallback(ns3::Ptr<ns3::Socket> socket);
     void PeerErrorCallback(ns3::Ptr<ns3::Socket> socket);
 
     // Send functions
     void SendToAllServers(void);
+    void SendToServer(uint32_t targetId, int64_t sendSize);
 
 private:
     uint32_t m_selfId;
@@ -47,7 +53,7 @@ private:
     std::vector<ns3::Ipv4Address> m_serversAddr;
     ns3::Ptr<ns3::Socket> m_recvSocket;
     std::vector<ns3::Ptr<ns3::Socket>> m_recvSockets;
-    
+
     std::map<uint32_t, uint64_t> m_recvBytes;
     uint32_t m_recvOKNum;
 
@@ -57,6 +63,7 @@ private:
     std::map<uint32_t, ns3::Ptr<ns3::Socket>> m_sendSockets;
     std::map<uint32_t, ns3::Ptr<ns3::Application>> m_sendApps;
     std::map<uint32_t, uint64_t> m_sendBytes;
+    uint64_t m_totalSendBytes;
 
     // Toplogy Info
     std::string m_linkDelay;
@@ -66,7 +73,10 @@ private:
     ns3::Time m_reConfTime;
     ns3::Time m_syncErrorTime;
     ns3::Time m_sendSlot;
-    uint64_t m_sendSizePerSlot;
+    ns3::Time m_OCSPeriod;
+    int64_t m_sendSizePerSlot;
+
+    std::fstream m_logFile;
 };
 
 #endif

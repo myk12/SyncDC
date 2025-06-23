@@ -33,6 +33,10 @@ AppRingAllReduce::AppRingAllReduce(uint32_t selfId, std::vector<ns3::Ipv4Address
     m_recvBytes = 0;
     m_recvRound = 0;
     m_sendRound = 0;
+
+    // Init log file
+    std::string logFileName = std::string(LOG_DIR) + "node-" + std::to_string(m_selfId) + ".log";
+    m_logfile.open(logFileName, std::ios::out | std::ios::app);
 }
 
 AppRingAllReduce::~AppRingAllReduce()
@@ -110,10 +114,11 @@ void AppRingAllReduce::RecvDataCallback(ns3::Ptr<ns3::Socket> socket)
         // for this round
         if (m_recvBytes >= RING_ALL_REDUCE_DATA_SIZE)
         {
+            NS_LOG_INFO("Recv round " << m_recvRound);
+            m_logfile << ns3::Simulator::Now().GetNanoSeconds() << ",RECV," << m_recvRound << std::endl;
+
             // Increment round
             m_recvBytes = 0;
-            m_recvRound++;
-            NS_LOG_INFO("Recv round " << m_recvRound);
 
             // If we have finished all rounds then stop app
             if (m_recvRound == m_serversNum - 1)
@@ -122,6 +127,7 @@ void AppRingAllReduce::RecvDataCallback(ns3::Ptr<ns3::Socket> socket)
                 StopApplication();
                 return;
             }
+            m_recvRound++;
 
             // Since we have received enough data
             // we can start a bulk send instance
@@ -199,4 +205,5 @@ void AppRingAllReduce::StartBulkSendInstance(uint32_t sendRound)
     // Start apps
     NS_LOG_INFO("Start BulkSendApp " << sendRound << " at " << ns3::Simulator::Now().GetSeconds() << "s");
     bulkSendApp->SetStartTime(ns3::Seconds(0.0));
+    m_logfile << ns3::Simulator::Now().GetNanoSeconds() << ",SEND," << sendRound << std::endl;
 }
