@@ -12,9 +12,19 @@
 
 typedef std::vector<std::vector<bool>> CircuitMatrix;
 
+typedef struct OCSTopologyConfig {
+    uint32_t numNodes;
+    std::string linkBandwidth;
+    std::string linkDelay;
+    ns3::Time reConfTime;   // reconfiguration time of the circuit switch
+    ns3::Time syncErrorTime;    // time of the sync error
+    uint64_t msgSize;   // in bytes 
+    std::string logDir; // Directory for log files
+} OCSTopologyConfig;
+
 class SyncDCTopologyOCS {
 public:
-    SyncDCTopologyOCS(YAML::Node& config);
+    SyncDCTopologyOCS(OCSTopologyConfig& config);
     ~SyncDCTopologyOCS();
 
     ns3::NodeContainer GetNodes();
@@ -27,9 +37,11 @@ public:
     std::string GetLinkBandwidth();
     std::string GetLinkDelay();
     std::map<ns3::Ipv4Address, uint32_t> GetMapAddr2Id();
+    uint64_t GetMsgSize();
 
     void GenerateCircuitMatrix();
 private:
+    OCSTopologyConfig m_config;
     uint32_t m_numNodes;
     ns3::Time m_reConfTime;
     ns3::Time m_syncErrorTime;

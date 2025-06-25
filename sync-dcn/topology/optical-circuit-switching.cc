@@ -10,14 +10,17 @@
 
 NS_LOG_COMPONENT_DEFINE("SyncDCTopologyOCS");
 
-SyncDCTopologyOCS::SyncDCTopologyOCS(YAML::Node& config) {
-    YAML::Node topoParam = config["network-topology"]["OCS"];
+SyncDCTopologyOCS::SyncDCTopologyOCS(OCSTopologyConfig &config)
+{
+    NS_LOG_INFO("Creating Optical Circuit Switch topology");
+    m_config = config;
     // Get total servers
-    m_reConfTime = ns3::Time(topoParam["reconf_time"].as<std::string>());
-    m_syncErrorTime = ns3::Time(topoParam["sync_error"].as<std::string>());
-    m_linkBandwidth = topoParam["link_bandwidth"].as<std::string>();
-    m_linkDelay = topoParam["link_delay"].as<std::string>();
-    m_numNodes = topoParam["total_servers"].as<uint32_t>();
+    m_reConfTime = config.reConfTime;
+    m_syncErrorTime = config.syncErrorTime;
+    m_linkBandwidth = config.linkBandwidth;
+    m_linkDelay = config.linkDelay;
+    m_numNodes = config.numNodes;
+    NS_LOG_INFO("Number of nodes: " << m_numNodes);
     // Create Nodes and Connect them with Point-to-Point Links
     m_Nodes.Create(m_numNodes);
 
@@ -50,7 +53,7 @@ SyncDCTopologyOCS::SyncDCTopologyOCS(YAML::Node& config) {
             // Store the IP addresses for later use
             m_MapId2Addr[i][j] = ip.GetAddress(0);
             m_MapId2Addr[j][i] = ip.GetAddress(1);
-            m_MapId2Addr[i][i] = ip.GetAddress(0); // Self address 
+            m_MapId2Addr[i][i] = ip.GetAddress(0); // Self address
             m_MapId2Addr[j][j] = ip.GetAddress(1); // Self address
             m_MapAddr2Id[ip.GetAddress(0)] = i;
             m_MapAddr2Id[ip.GetAddress(1)] = j;
@@ -75,19 +78,22 @@ SyncDCTopologyOCS::GetNodes()
     return m_Nodes;
 }
 
-void
-SyncDCTopologyOCS::GenerateCircuitMatrix()
+void SyncDCTopologyOCS::GenerateCircuitMatrix()
 {
     // now we use round-robin, for num servers we have num matrix
-    // and within each matrix, one server is full connected to 
+    // and within each matrix, one server is full connected to
     // other servers
     uint32_t dim = m_numNodes;
-    for (uint32_t i = 0; i < m_numNodes; i++) {
+    for (uint32_t i = 0; i < m_numNodes; i++)
+    {
         // num x num matrix
         CircuitMatrix matrix(dim, std::vector<bool>(dim, false));
-        for (uint32_t j = 0; j < dim; j++) {
-            for (uint32_t k = 0; k < dim; k++) {
-                if (j == i || k == i) {
+        for (uint32_t j = 0; j < dim; j++)
+        {
+            for (uint32_t k = 0; k < dim; k++)
+            {
+                if (j == i || k == i)
+                {
                     matrix[j][k] = true;
                 }
             }
@@ -138,7 +144,8 @@ ns3::Ipv4Address
 SyncDCTopologyOCS::GetNodeAddr(uint32_t nodeId, uint32_t targetId)
 {
     NS_LOG_FUNCTION(this << nodeId << targetId);
-    if (nodeId >= m_numNodes || targetId >= m_numNodes) {
+    if (nodeId >= m_numNodes || targetId >= m_numNodes)
+    {
         NS_LOG_ERROR("Node ID " << nodeId << " or " << targetId << " is out of range");
         return ns3::Ipv4Address();
     }
@@ -150,4 +157,10 @@ std::map<ns3::Ipv4Address, uint32_t>
 SyncDCTopologyOCS::GetMapAddr2Id()
 {
     return m_MapAddr2Id;
+}
+
+uint64_t
+SyncDCTopologyOCS::GetMsgSize()
+{
+    return m_config.msgSize;
 }

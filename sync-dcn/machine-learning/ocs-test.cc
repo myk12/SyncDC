@@ -33,7 +33,8 @@ InitOCSTest(std::shared_ptr<SyncDCTopologyOCS> topology)
             topology->GetLinkBandwidth(), 
             topology->GetReConfTime(), 
             topology->GetSyncErrorTime(),
-            topology->GetMapAddr2Id());
+            topology->GetMapAddr2Id(),
+            topology->GetMsgSize());
         
         app->SetStartTime(ns3::Seconds(0.0));
         nodes.Get(i)->AddApplication(app);

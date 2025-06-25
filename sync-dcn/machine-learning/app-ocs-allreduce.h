@@ -10,7 +10,7 @@
 #define OCS_ALL_REDUCE_PORT 9997
 #define OCS_ALL_REDUCE_DATA_SIZE 2 * 1024 * 1024
 #define OCS_ALL_REDUCE_PACKET_SIZE 1024
-#define LOG_DIR "OCSAllReduce/"
+#define LOG_DIR "./"
 
 #include <yaml-cpp/yaml.h>
 #include <vector>
@@ -27,7 +27,8 @@ public:
                     std::vector<ns3::Ipv4Address> serversAddr,
                     std::string linkDelay, std::string linkBandwidth,
                     ns3::Time reConfTime, ns3::Time syncErrorTime,
-                    std::map<ns3::Ipv4Address, uint32_t> MapAddr2Id);
+                    std::map<ns3::Ipv4Address, uint32_t> MapAddr2Id,
+                    uint64_t msgSize);
     ~AppOCSAllReduce();
 
     void StartApplication(void);
@@ -75,6 +76,7 @@ private:
     ns3::Time m_sendSlot;
     ns3::Time m_OCSPeriod;
     int64_t m_sendSizePerSlot;
+    uint64_t m_constMsgSize;     // in bytes
 
     std::fstream m_logFile;
 };

@@ -28,9 +28,14 @@ void InitSpineLeafTest(std::shared_ptr<SyncDCTopologySpineLeaf> topology)
     for (uint32_t i = 0; i < allHostsIpv4.size(); i++)
     {
         ns3::Ptr<ns3::Node> node = allHosts.Get(i);
-        ns3::Ptr<AppRingAllReduce> app = ns3::CreateObject<AppRingAllReduce>(i, allHostsIpv4);
+        uint32_t serverId = i;
+        uint32_t nodeId = node->GetId();
+        ns3::Ptr<AppRingAllReduce> app = ns3::CreateObject<AppRingAllReduce>(i, allHostsIpv4,
+                                                topology->GetMsgSize(),
+                                                topology->GetLogDir());
 
         node->AddApplication(app);
+        topology->BindServerId2NodeId(serverId, nodeId);
         allHostsApps.Add(app);
     }
 

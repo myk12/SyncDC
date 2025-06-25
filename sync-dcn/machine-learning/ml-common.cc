@@ -10,10 +10,10 @@ BandwidthStr2Bps(std::string bandwidthStr)
     std::string numStr = bandwidthStr.substr(0, bandwidthStr.length() - 4);
 
     uint64_t number = std::stoull(numStr);
-    NS_LOG_UNCOND("Bandwidth number: " << number);
+    NS_LOG_INFO("Bandwidth number: " << number);
     uint64_t unit = 1; // Default is bps
     if (bandwidthStr.find("Gbps") != std::string::npos) {
-        NS_LOG_UNCOND("Bandwidth unit: Gbps");
+        NS_LOG_INFO("Bandwidth unit: Gbps");
         unit = 1000000000; // 1 Gbps = 10^9
     } else if (bandwidthStr.find("Mbps") != std::string::npos) {
         unit = 1000000; // 1 Mbps = 10^6
@@ -46,5 +46,27 @@ DelayStr2NanoSeconds(std::string delayStr)
         NS_FATAL_ERROR("Unsupport delay unit: " << unitPart);
     }
 
+    return number * unit;
+}
+
+uint64_t
+DataSizeStr2Bytes(std::string dataSizeStr)
+{
+    // Get number
+    std::string numStr = dataSizeStr.substr(0, dataSizeStr.length() - 2);
+
+    uint64_t number = std::stoull(numStr);
+    NS_LOG_INFO("Data size number: " << number);
+    uint64_t unit = 1; // Default is byte
+    if (dataSizeStr.find("KB") != std::string::npos) {
+        NS_LOG_INFO("Data size unit: KB");
+        unit = 1024;
+    } else if (dataSizeStr.find("MB") != std::string::npos) {
+        unit = 1024 * 1024;
+    } else if (dataSizeStr.find("GB") != std::string::npos) {
+        unit = 1024 * 1024 * 1024;
+    } else {
+        NS_FATAL_ERROR("Unsupport data size unit: " << dataSizeStr);
+    }
     return number * unit;
 }

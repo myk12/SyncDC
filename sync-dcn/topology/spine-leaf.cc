@@ -9,21 +9,23 @@ Ipv4int2string(uint32_t ip) {
     return ss.str();
 }
 
-SyncDCTopologySpineLeaf::SyncDCTopologySpineLeaf(YAML::Node &config)
+SyncDCTopologySpineLeaf::SyncDCTopologySpineLeaf(SpineLeafTopologyConfig &config)
 {
     NS_LOG_INFO("Creating Spine-Leaf topology");
     // Parse config
-    YAML::Node topoParams  = config["network-topology"]["Spine-leaf"];
+    m_config = config;
+    // Parse topology parameters
+    uint32_t numSpines = config.numSpines;
+    uint32_t numLeaves = config.numLeaves;
+    uint32_t numHostsPerLeaf = config.numHostsPerLeaf;
+    std::string bandwidthLeaf2Spine = config.linkBandwidth;
+    std::string delayLeaf2Spine = config.linkDelay;
+    std::string bandwidthHost2Leaf = config.linkBandwidth;
+    std::string delayHost2Leaf = config.linkDelay;
 
-    uint32_t numSpines = topoParams["spine_count"].as<uint32_t>();
-    uint32_t numLeaves = topoParams["leaf_count"].as<uint32_t>();
-    uint32_t numHostsPerLeaf = topoParams["servers_per_leaf"].as<uint32_t>();
-    std::string bandwidthLeaf2Spine = topoParams["link_bandwidth"].as<std::string>();
-    std::string delayLeaf2Spine = topoParams["link_delay"].as<std::string>();
-    std::string bandwidthHost2Leaf = topoParams["link_bandwidth"].as<std::string>();
-    std::string delayHost2Leaf = topoParams["link_delay"].as<std::string>();
-
-    NS_LOG_INFO("Creating Clos topology with " << numSpines << " spines, " << numLeaves << " leaves, " << numHostsPerLeaf << " hosts per leaf, " << bandwidthLeaf2Spine << " bandwidth leaf to spine, " << delayLeaf2Spine << " delay leaf to spine, " << bandwidthHost2Leaf << " bandwidth host to leaf, " << delayHost2Leaf << " delay host to leaf");
+    NS_LOG_INFO("Number of spines: " << numSpines);
+    NS_LOG_INFO("Number of leaves: " << numLeaves);
+    NS_LOG_INFO("Number of hosts per leaf: " << numHostsPerLeaf);
     // Create spine nodes
     m_spineNodes.Create(numSpines);
 
@@ -36,6 +38,13 @@ SyncDCTopologySpineLeaf::SyncDCTopologySpineLeaf(YAML::Node &config)
         ns3::NodeContainer hostNodes;
         hostNodes.Create(numHostsPerLeaf);
         m_hostNodes.push_back(hostNodes);
+
+        // Insert nodeId2LeafIdMap
+        for (uint32_t j = 0; j < hostNodes.GetN(); j++)
+        {
+            uint32_t nodeId = hostNodes.Get(j)->GetId();
+            m_nodeId2LeafIdMap[nodeId] = i;
+        }
     }
 
     // Install Network Stacks
@@ -131,6 +140,31 @@ ns3::Ipv4Address SyncDCTopologySpineLeaf::GetHostAddress(uint32_t leafId, uint32
     return m_hostLeafInterfaceMatrix[leafId][hostId].GetAddress(1);
 }
 
+uint64_t SyncDCTopologySpineLeaf::GetMsgSize()
+{
+    return m_config.msgSize;
+}
+
+std::string SyncDCTopologySpineLeaf::GetLogDir()
+{
+    return m_config.logDir;
+}
+
+void
+SyncDCTopologySpineLeaf::BindServerId2NodeId(uint32_t serverId, uint32_t nodeId)
+{
+    m_serverId2NodeIdMap[serverId] = nodeId;
+
+    // Update nodeId2LeafIdMap
+    m_serverId2LeafIdMap[serverId] = m_nodeId2LeafIdMap[nodeId];
+}
+
+uint32_t SyncDCTopologySpineLeaf::GetLeafIdbyServerId(uint32_t serverId)
+{
+    NS_ASSERT_MSG(m_serverId2NodeIdMap.find(serverId) != m_serverId2NodeIdMap.end(), "Server ID not found");
+    return m_serverId2LeafIdMap[serverId];
+}
+
 // Your existing methods (GetSpineAddress, GetLeafAddress, GetHostAddress, InitPaxosServerCluster, InitPaxosClientCluster, SetPaxosServerAppStartStop, SetPaxosClientAppStartStop)...
 
 void SyncDCTopologySpineLeaf::ExportTopologyToYaml(const std::string& filename)
@@ -220,4 +254,33 @@ void SyncDCTopologySpineLeaf::ExportTopologyToYaml(const std::string& filename)
 std::vector<ns3::NodeContainer> SyncDCTopologySpineLeaf::GetLeafNodeHosts()
 {
     return m_hostNodes;
+}
+
+std::string SyncDCTopologySpineLeaf::GetLogDir()
+{
+    return m_config.logDir;
+}
+
+std::string
+SyncDCTopologySpineLeaf::GetLinkBandwidth()
+{
+    return m_config.linkBandwidth;
+}
+
+uint32_t
+SyncDCTopologySpineLeaf::GetNumSpines()
+{
+    return m_config.numSpines;
+}
+
+uint32_t
+SyncDCTopologySpineLeaf::GetNumLeaves()
+{
+    return m_config.numLeaves;
+}
+
+uint32_t
+SyncDCTopologySpineLeaf::GetNumHostsPerLeaf()
+{
+    return m_config.numHostsPerLeaf;
 }

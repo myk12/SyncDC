@@ -21,7 +21,8 @@ AppOCSAllReduce::AppOCSAllReduce(uint32_t selfId,
                                  std::vector<ns3::Ipv4Address> serversAddr,
                                  std::string linkDelay, std::string linkBandwidth,
                                  ns3::Time reConfTime, ns3::Time syncErrorTime,
-                                 std::map<ns3::Ipv4Address, uint32_t> MapAddr2Id)
+                                 std::map<ns3::Ipv4Address, uint32_t> MapAddr2Id,
+                                 uint64_t msgSize)
     : m_selfId(selfId),
       m_serversAddr(serversAddr),
       m_linkDelay(linkDelay),
@@ -32,6 +33,7 @@ AppOCSAllReduce::AppOCSAllReduce(uint32_t selfId,
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("Start AppOCSAllReduce on server " << m_selfId);
     m_serversNum = m_serversAddr.size();
+    m_constMsgSize = msgSize;
 
     // Initialize map
     m_MapAddr2Id = MapAddr2Id;
@@ -51,7 +53,7 @@ AppOCSAllReduce::AppOCSAllReduce(uint32_t selfId,
     NS_LOG_INFO("Link bandwidth: " << m_linkBandwidth << " bps");
     NS_LOG_INFO("Link bandwidth in bytes: " << m_linkBandwidthBps << " Bps");
     NS_LOG_INFO("Link delay in nanoseconds: " << m_linkDelayNanoSeconds << " ns");
-    NS_LOG_INFO("Reconfiguration time: " << m_reConfTime << " seconds");
+    NS_LOG_INFO("Reconfiguration time: " << m_reConfTime << " ns");
     NS_LOG_INFO("Send size per slot: " << m_sendSizePerSlot << " bytes");
 }
 
@@ -124,7 +126,7 @@ void AppOCSAllReduce::RecvDataCallback(ns3::Ptr<ns3::Socket> socket)
     {
         m_recvBytes[id] += packet->GetSize();
         //NS_LOG_INFO ("Server " << m_selfId << " received " << packet->GetSize () << " bytes from server " << id);
-        if (m_recvBytes[id] >= OCS_ALL_REDUCE_DATA_SIZE)
+        if (m_recvBytes[id] >= m_constMsgSize)
         {
             m_logFile <<ns3::Simulator::Now().GetNanoSeconds() << ",RECV,"  << id << std::endl;
             NS_LOG_INFO("Server " << m_selfId << " received " << m_recvBytes[id] << " bytes from server " << id);
@@ -199,7 +201,7 @@ void AppOCSAllReduce::SendToAllServers()
     m_totalSendBytes += m_sendSizePerSlot;
 
     // Schedule next round
-    if (m_totalSendBytes < OCS_ALL_REDUCE_DATA_SIZE)
+    if (m_totalSendBytes < m_constMsgSize)
     {
         NS_LOG_INFO("Server " << m_selfId << " scheduled next send at " << ns3::Simulator::Now().GetSeconds() + m_OCSPeriod.GetSeconds() << " seconds");
         ns3::Simulator::Schedule(m_OCSPeriod, &AppOCSAllReduce::SendToAllServers, this);

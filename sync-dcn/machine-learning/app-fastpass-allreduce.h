@@ -1,12 +1,12 @@
-#ifndef APP_RING_ALLREDUCE_H
-#define APP_RING_ALLREDUCE_H
+#ifndef APP_FASTPASS_ALLREDUCE_H
+#define APP_FASTPASS_ALLREDUCE_H
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
-#include "ns3/point-to-point-module.h"
 #include "ns3/applications-module.h"
-#include "ns3/flow-monitor-module.h"
+
+#include "app-fastpass-arbiter.h"
 
 #include <yaml-cpp/yaml.h>
 #include <vector>
@@ -63,4 +63,4 @@ class AppRingAllReduce : public ns3::Application {
         std::string m_logDir;
 };
 
-#endif
+#endif  // APP_FASTPASS_ALLREDUCE_H
