@@ -6,13 +6,14 @@ import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 
 class MLPlot:
-    def __init__(self, root_path, ocs_msg_path, ocs_reconf_sync_path):
+    def __init__(self, root_path, ocs_msg_path, ring_msg_path, fastpass_msg_path, ocs_reconf_sync_path):
         self.root_path = root_path
         self.ocs_msg_path = ocs_msg_path
-        self.ring_msg_path = None  # Placeholder for ring message size path
-        self.fastpass_msg_path = None
+        self.ring_msg_path = ring_msg_path  # Placeholder for ring message size path
+        self.fastpass_msg_path = fastpass_msg_path  # Placeholder for fastpass message size path
         
         self.ocs_reconf_sync_path = ocs_reconf_sync_path  # Placeholder for OCS reconf sync path
         self.name = os.path.basename(__file__)
@@ -148,15 +149,42 @@ class MLPlot:
         if not ocs_msgsize_data:
             logging.error("No valid OCS message size data found.")
             return None
-        # Convert to DataFrame
-        df = pd.DataFrame(list(ocs_msgsize_data.items()), columns=['msg_size_MB', 'result_ns'])
-        df['msg_size_MB'] = df['msg_size_MB'].astype(str)  # Ensure msg_size_MB is str
-        df['result_ns'] = df['result_ns'].astype(int)  # Ensure result_ns is int
-        # Sort by the message size value 
-        df['msg_size_MB'] = df['msg_size_MB'].str.replace('MB', '').astype(int)
-        df = df.sort_values(by='msg_size_MB').reset_index(drop=True)
-        logging.info("Parsed OCS message size data successfully.")
-        return df
+        return ocs_msgsize_data
+
+    def parse_ring_msgsize_data(self):
+        """
+        Parse the ring message size data from the specified path.
+        """
+        logging.info("Parsing ring message size data...")
+        path = os.path.join(self.root_path, self.ring_msg_path)
+        
+        if not os.path.exists(path):
+            logging.error(f"Path {path} does not exist.")
+            return None
+        
+        ring_msgsize_data = {} # msgsize in MB as key, list of values as value
+        # Get dir list and parse the message size data and result
+        dir_list = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
+        for d in dir_list:
+            # dir format: msgsize_1MB, current we only support MB
+            if not re.match(r'msgsize_\d+MB', d):
+                logging.warning(f"Directory {d} does not match expected format 'msgsize_1MB'. Skipping.")
+                continue
+            msg_size_str = d.split('_')[1]  # Extract message size in MB
+            # get the result file
+            # compare the first value of the last line in all the result files,
+            # the result file with the largest first value is the result
+            result_value = 0
+            for f in os.listdir(os.path.join(path, d)):
+                with open(os.path.join(path, d, f), 'r') as fs:
+                    value = fs.readlines()[-1].split(',')[0]
+                    if int(value) > result_value:
+                        result_value = int(value)
+            ring_msgsize_data[msg_size_str] = result_value
+        if not ring_msgsize_data:
+            logging.error("No valid ring message size data found.")
+            return None
+        return ring_msgsize_data
 
     def plot_jct_barchart(self, output_path="./"):
         """
@@ -164,44 +192,69 @@ class MLPlot:
         """
         logging.info("Plotting JCT bar chart...")
 
-        result_df = None
+        result_data = None
         if self.ocs_msg_path is not None:
             # concatenate the OCS message size data with the result DataFrame
-            ocs_df = self.parse_ocs_msgsize_data()
-            result_df = pd.concat([result_df, ocs_df], ignore_index=True)
+            ocs_data = self.parse_ocs_msgsize_data()
+            result_data = pd.DataFrame.from_dict(ocs_data, orient='index', columns=['ocs_jct_ns'])
         
         if self.ring_msg_path is not None:
             # concatenate the ring message size data with the result DataFrame
-            ring_df = self.parse_ring_msgsize_data()
-            result_df = pd.concat([result_df, ring_df], ignore_index=True)
+            ring_data = self.parse_ring_msgsize_data()
+            result_data = pd.concat([result_data, pd.DataFrame.from_dict(ring_data, orient='index', columns=['ring_jct_ns'])], axis=1)
         
         if self.fastpass_msg_path is not None:
             # concatenate the fastpass message size data with the result DataFrame
-            fastpass_df = self.parse_fastpass_msgsize_data()
-            result_df = pd.concat([result_df, fastpass_df], ignore_index=True)
+            fastpass_data = self.parse_fastpass_msgsize_data()
         
-        if result_df is None or result_df.empty:
-            logging.error("No data available to plot JCT bar chart.")
-            return
-        # Plotting
-        plt.figure(figsize=(8, 6))
-        sns.barplot(x='msg_size_MB', y='result_ns', data=result_df)
+        # Prepare data
+        result_data = result_data.reset_index().rename(columns={'index': 'MessageSize'})
+        message_sizes = ['1MB', '2MB', '4MB', '8MB', '16MB']  # Ensure correct order
+        result_data['MessageSize'] = pd.Categorical(result_data['MessageSize'], categories=message_sizes, ordered=True)
+        result_data = result_data.sort_values('MessageSize')
         
-        plt.title('Job Completion Time (JCT) vs Message Size')
+        print(result_data)
+        network_types = [col for col in result_data.columns if col != 'MessageSize']
+        colors = sns.color_palette("hls", len(network_types))
+        hatches = ['x', 'o', '/']  # Different hatches for each network type
+        
+        # Bar width and positions
+        bar_width = 0.8 / len(network_types)  # Adjust width based on number of groups
+        x = np.arange(len(message_sizes))
+        
+        # Plot bars for each network type
+        for i, network_type in enumerate(network_types):
+            plt.bar(x + (i - len(network_types)/2 + 0.5) * bar_width, 
+                    result_data[network_type], 
+                    bar_width, 
+                    color=colors[i], 
+                    edgecolor='black', 
+                    hatch=hatches[i % len(hatches)], 
+                    label=network_type.replace('_jct_ns', '').capitalize())
+            
+            # Add value labels
+            for j, value in enumerate(result_data[network_type]):
+                if not pd.isna(value) and value > 0:
+                    plt.text(x[j] + (i - len(network_types)/2 + 0.5) * bar_width, 
+                            value, 
+                            f'{int(value)}', 
+                            ha='center', va='bottom', fontsize=8, color='black')
+        
+        plt.title('JCT vs Message Size')
         plt.xlabel('Message Size (MB)')
         plt.ylabel('Job Completion Time (ns)')
-        plt.xticks(rotation=45)
-        plt.tight_layout()
+        plt.yscale('log')  # Use log scale for large range
+        plt.xticks(x, message_sizes, rotation=45)
+        plt.legend(title='Network Type')
         
         ax = plt.gca()
         ax.spines['top'].set_linewidth(2)
         ax.spines['right'].set_linewidth(2)
         ax.spines['left'].set_linewidth(2)
         ax.spines['bottom'].set_linewidth(2)
-
-        # Save the plot
-        output_file = os.path.join(output_path, 'jct_barchart.pdf')
-        plt.savefig(output_file)
+        
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_path, 'jct_barchart.pdf'))
         plt.close()
     
     def plot_reconf_sync_linechart(self, output_path="./"):
@@ -246,11 +299,15 @@ def main():
     parser = argparse.ArgumentParser(description='Test MLPlot class')
     parser.add_argument('--root_path', type=str, default='result-allreduce', help='Root path for the test files')
     parser.add_argument('--ocs_msg_path', type=str, default='ocs-msgsize', help='Path to the OCS test results file')
+    parser.add_argument('--ring_msg_path', type=str, default='ring-msgsize', help='Path to the ring test results file')
+    parser.add_argument('--fastpass_msg_path', type=str, default=None, help='Path to the fastpass test results file')
     parser.add_argument('--ocs_reconf_sync_path', type=str, default='ocs-reconf-sync', help='Path to the OCS reconf sync test results file')
     args = parser.parse_args()
     
     ml_ploter = MLPlot(root_path=args.root_path,
                         ocs_msg_path=args.ocs_msg_path,
+                        ring_msg_path=args.ring_msg_path,
+                        fastpass_msg_path=args.fastpass_msg_path,
                         ocs_reconf_sync_path=args.ocs_reconf_sync_path)
     logging.info(f"MLPlot initialized with root_path: {args.root_path}, ocs_msg_path: {args.ocs_msg_path}, ocs_reconf_sync_path: {args.ocs_reconf_sync_path}")
     ml_ploter.plot_jct_barchart()

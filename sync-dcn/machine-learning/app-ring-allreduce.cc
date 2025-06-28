@@ -12,32 +12,39 @@ AppRingAllReduce::GetTypeId()
 }
 
 AppRingAllReduce::AppRingAllReduce()
-    : m_selfId(0),
-      m_prevId(0),
-      m_nextId(0),
+    :m_selfIdx(0),
+      m_selfNodeId(0),
       m_serversNum(0),
-      m_sendAddr(ns3::Ipv4Address::GetAny(), RING_ALL_REDUCE_PORT)
+      m_sendAddr(ns3::Ipv4Address::GetAny(), 0)
 {
 }
 
-AppRingAllReduce::AppRingAllReduce(uint32_t selfId, std::vector<ns3::Ipv4Address> serversAddr, uint64_t msgSize, std::string logDir)
-    : m_selfId(selfId),
-      m_serversAddr(serversAddr),
-      m_serversNum(serversAddr.size()),
-      m_prevId((selfId - 1 + serversAddr.size()) % serversAddr.size()),
-      m_nextId((selfId + 1) % serversAddr.size()),
-      m_sendAddr(m_serversAddr[selfId], RING_ALL_REDUCE_PORT)
+AppRingAllReduce::AppRingAllReduce(uint32_t selfIdx,
+                                std::vector<std::pair<uint32_t, ns3::Ipv4Address>> serverIDAddrs,
+                                uint16_t port,
+                                uint64_t msgSize,
+                                std::string logDir)
+    : m_selfIdx(selfIdx),
+      m_serverIDAddrs(serverIDAddrs),
+      m_servicePort(port),
+      m_selfNodeId(serverIDAddrs[selfIdx].first),
+      m_serversNum(serverIDAddrs.size()),
+      m_sendAddr(serverIDAddrs[selfIdx].second, port),
+      m_msgSize(msgSize),
+      m_logDir(logDir)
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("Start AppRingAllReduce on server " << m_selfId << " with prev=" << m_prevId << " next=" << m_nextId);
+    NS_LOG_INFO("Server " << m_selfNodeId << " has " << m_serversNum << " servers");
     m_recvBytes = 0;
     m_recvRound = 0;
     m_sendRound = 0;
-    m_msgSize = msgSize;
-    m_logDir = logDir;
+    
+    // Wire to previous and next server
+    m_prevIdx = (selfIdx - 1 + m_serversNum) % m_serversNum;
+    m_nextIdx = (selfIdx + 1) % m_serversNum;
 
     // Init log file
-    std::string logFileName = logDir + "/node-" + std::to_string(m_selfId) + ".log";
+    std::string logFileName = logDir + "/node-" + std::to_string(m_selfNodeId) + "-" + std::to_string(m_servicePort) + ".log";
     m_logfile.open(logFileName, std::ios::out | std::ios::app);
 }
 
@@ -49,7 +56,7 @@ AppRingAllReduce::~AppRingAllReduce()
 void AppRingAllReduce::StartApplication()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("Start AppRingAllReduce on server " << m_selfId);
+    NS_LOG_INFO("Server " << m_selfNodeId << " start application");
 
     // Start Receiver thread
     StartRingRecvThread();
@@ -61,6 +68,7 @@ void AppRingAllReduce::StartApplication()
 void AppRingAllReduce::StopApplication()
 {
     NS_LOG_FUNCTION(this);
+    NS_LOG_INFO("Server " << m_selfIdx <<" stop app.");
 }
 
 void AppRingAllReduce::StartRingRecvThread()
@@ -76,10 +84,10 @@ void AppRingAllReduce::StartRingRecvThread()
     }
 
     // Bind socket and listen
-    ns3::InetSocketAddress local = ns3::InetSocketAddress(ns3::Ipv4Address::GetAny(), RING_ALL_REDUCE_PORT);
+    ns3::InetSocketAddress local = ns3::InetSocketAddress(ns3::Ipv4Address::GetAny(), m_servicePort);
     m_recvSocket->Bind(local);
     m_recvSocket->Listen();
-    NS_LOG_INFO("Server " << m_selfId << " listening on " << m_serversAddr[m_selfId] << ":" << RING_ALL_REDUCE_PORT);
+    NS_LOG_INFO("Server " << m_selfNodeId << " start listening on port " << m_servicePort);
 
     // Set callback
     m_recvSocket->ShutdownSend(); // Don't send data to client
@@ -93,7 +101,8 @@ void AppRingAllReduce::StartRingSendThread()
 {
     NS_LOG_FUNCTION(this);
 
-    m_sendAddr = ns3::InetSocketAddress(m_serversAddr[m_nextId], RING_ALL_REDUCE_PORT);
+    m_sendAddr = ns3::InetSocketAddress(m_serverIDAddrs[m_nextIdx].second, m_servicePort);
+    NS_LOG_INFO("Server " << m_selfNodeId << " start sending data to " << m_sendAddr);
     // Create a BulkSendApp and start sending data
     StartBulkSendInstance(0);
 }
@@ -111,7 +120,7 @@ void AppRingAllReduce::RecvDataCallback(ns3::Ptr<ns3::Socket> socket)
     {
         // Process data
         m_recvBytes += packet->GetSize();
-
+        //NS_LOG_INFO("Server " << m_selfIdx << " receviced a packet");
         // Check if we have received enough data
         // for this round
         if (m_recvBytes >= m_msgSize)
@@ -129,6 +138,7 @@ void AppRingAllReduce::RecvDataCallback(ns3::Ptr<ns3::Socket> socket)
                 StopApplication();
                 return;
             }
+
             m_recvRound++;
 
             // Since we have received enough data
@@ -144,21 +154,10 @@ bool AppRingAllReduce::RequestCallback(ns3::Ptr<ns3::Socket> socket, const ns3::
     NS_LOG_FUNCTION(this << socket << from);
     // Check if it is our previous server
     ns3::InetSocketAddress socketAddr = ns3::InetSocketAddress::ConvertFrom(from);
-    if (socketAddr.GetIpv4() != m_serversAddr[m_prevId])
+    if (socketAddr.GetIpv4() != m_serverIDAddrs[m_prevIdx].second)
     {
-        // Get serverId from socket address
-        uint32_t serverId = 0;
-        for (uint32_t i = 0; i < m_serversNum; i++)
-        {
-            if (socketAddr.GetIpv4() == m_serversAddr[i])
-            {
-                serverId = i;
-                break;
-            }
-        }
-
         // Accept connection
-        NS_FATAL_ERROR("Server " << m_selfId << "  get request from wrong server " << serverId);
+        NS_FATAL_ERROR("Server " << m_selfNodeId << " get request from wrong server " << socketAddr.GetIpv4());
         return false;
     }
 
@@ -205,7 +204,7 @@ void AppRingAllReduce::StartBulkSendInstance(uint32_t sendRound)
     GetNode()->AddApplication(bulkSendApp);
 
     // Start apps
-    NS_LOG_INFO("Start BulkSendApp " << sendRound << " at " << ns3::Simulator::Now().GetSeconds() << "s");
+    NS_LOG_INFO("Start BulkSendApp " << sendRound << " at " << ns3::Simulator::Now().GetSeconds() << "s, with Bytes " << m_msgSize);
     bulkSendApp->SetStartTime(ns3::Seconds(0.0));
     m_logfile << ns3::Simulator::Now().GetNanoSeconds() << ",SEND," << sendRound << std::endl;
 }

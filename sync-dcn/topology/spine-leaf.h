@@ -48,6 +48,8 @@ public:
 
     void BindServerId2NodeId(uint32_t serverId, uint32_t nodeId);
     uint32_t GetLeafIdbyServerId(uint32_t serverId);
+    ns3::Ptr<ns3::Node> GetNodeByServerId(uint32_t serverId);
+
 private:
     ns3::NodeContainer m_spineNodes;
     ns3::NodeContainer m_leafNodes;
@@ -65,6 +67,7 @@ private:
     std::map<uint32_t, uint32_t> m_serverId2NodeIdMap;
     std::map<uint32_t, uint32_t> m_nodeId2LeafIdMap;
     std::map<uint32_t, uint32_t> m_serverId2LeafIdMap;
+    std::map<uint32_t, ns3::Ptr<ns3::Node>> m_serverId2NodeMap;
 };
 
 #endif

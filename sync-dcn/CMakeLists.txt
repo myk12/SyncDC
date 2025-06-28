@@ -16,13 +16,10 @@ include_directories(${ML_SOURCE_DIR} ${TOPO_SOURCE_DIR})
 set(ML_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/machine-learning")
 
 set(SOURCE_FILES
-    ${ML_SOURCE_DIR}/ml-main.cc
     ${ML_SOURCE_DIR}/ml-common.cc
     ${ML_SOURCE_DIR}/app-all-reduce.cc
     ${ML_SOURCE_DIR}/app-ring-allreduce.cc
     ${ML_SOURCE_DIR}/app-ocs-allreduce.cc
-    ${ML_SOURCE_DIR}/ocs-test.cc
-    ${ML_SOURCE_DIR}/spine-leaf-test.cc
     ${TOPO_SOURCE_DIR}/spine-leaf.cc
     ${TOPO_SOURCE_DIR}/optical-circuit-switching.cc
 )
@@ -36,10 +33,19 @@ set(HEADER_FILES
     ${TOPO_SOURCE_DIR}/optical-circuit-switching.h
 )
 
-add_executable(ml-allreduce ${SOURCE_FILES} ${HEADER_FILES})
+# Add executable target Ring-Allreduce Test
+set(RING_ALLREDUCE_SOURCE
+    tests/test-spine-leaf-ml-workload.cc
+    ${SOURCE_FILES}
+    ${HEADER_FILES}
+)
+
+include_directories(${ML_SOURCE_DIR} ${TOPO_SOURCE_DIR})
+
+add_executable(ml-ring-allreduce ${RING_ALLREDUCE_SOURCE}   )
 
 # Link required NS-3 libraries
-target_link_libraries(ml-allreduce
+target_link_libraries(ml-ring-allreduce
     ns3::network
     ns3::internet
     ns3::point-to-point

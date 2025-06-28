@@ -33,6 +33,7 @@ SyncDCTopologySpineLeaf::SyncDCTopologySpineLeaf(SpineLeafTopologyConfig &config
     m_leafNodes.Create(numLeaves);
 
     // Create host nodes
+    uint32_t serverId = 0;
     for (uint32_t i = 0; i < numLeaves; i++)
     {
         ns3::NodeContainer hostNodes;
@@ -42,8 +43,13 @@ SyncDCTopologySpineLeaf::SyncDCTopologySpineLeaf(SpineLeafTopologyConfig &config
         // Insert nodeId2LeafIdMap
         for (uint32_t j = 0; j < hostNodes.GetN(); j++)
         {
-            uint32_t nodeId = hostNodes.Get(j)->GetId();
+            ns3::Ptr<ns3::Node> hostNode = hostNodes.Get(j);
+            uint32_t nodeId = hostNode->GetId();
             m_nodeId2LeafIdMap[nodeId] = i;
+            m_serverId2NodeMap[serverId] = hostNode;
+            m_serverId2NodeIdMap[serverId] = nodeId;
+            m_serverId2LeafIdMap[serverId] = i;
+            serverId++;
         }
     }
 
@@ -256,11 +262,6 @@ std::vector<ns3::NodeContainer> SyncDCTopologySpineLeaf::GetLeafNodeHosts()
     return m_hostNodes;
 }
 
-std::string SyncDCTopologySpineLeaf::GetLogDir()
-{
-    return m_config.logDir;
-}
-
 std::string
 SyncDCTopologySpineLeaf::GetLinkBandwidth()
 {
@@ -283,4 +284,13 @@ uint32_t
 SyncDCTopologySpineLeaf::GetNumHostsPerLeaf()
 {
     return m_config.numHostsPerLeaf;
+}
+
+ns3::Ptr<ns3::Node>
+SyncDCTopologySpineLeaf::GetNodeByServerId(uint32_t serverId)
+{
+    NS_LOG_FUNCTION(this << serverId);
+    NS_LOG_INFO("Getting node by server ID: " << serverId);
+    NS_ASSERT_MSG(m_serverId2NodeIdMap.find(serverId) != m_serverId2NodeIdMap.end(), "Server ID " << serverId << " not found");
+    return m_serverId2NodeMap[serverId];
 }
