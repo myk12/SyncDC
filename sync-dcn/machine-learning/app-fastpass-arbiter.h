@@ -11,7 +11,7 @@
 #include "spine-leaf.h"
 #include "ml-common.h"
 
-#define FASTPASS_ARBITER_PORT 9995
+#define FASTPASS_ARBITER_PORT 8080
 
 class FastPassArbiter : public ns3::Application
 {
@@ -28,7 +28,9 @@ public:
 
     // Callback functions
     bool HandleAccept(ns3::Ptr<ns3::Socket> socket, const ns3::Address& from);
-    void HandleAcceptError(ns3::Ptr<ns3::Socket> socket, const ns3::Address& from);
+    void HandleConnect(ns3::Ptr<ns3::Socket> socket, const ns3::Address& from);
+    void HandleNormalClose(ns3::Ptr<ns3::Socket> socket);
+    void HandleErrorClose(ns3::Ptr<ns3::Socket> socket);
     void HandleRead(ns3::Ptr<ns3::Socket> socket);
 
     // Process Request
@@ -39,11 +41,16 @@ public:
     // Response
     void SendResponse(ns3::Ptr<ns3::Socket> socket, ns3::Ptr<ns3::Packet> packet);
 
+    void SetTopology(std::shared_ptr<SyncDCTopologySpineLeaf> topology);
+    void SetLogDir(std::string logDir);
+
 private:
     // resource pool
     // node Id to position
     ns3::Ptr<ns3::Socket> m_listenSocket;
     std::shared_ptr<SyncDCTopologySpineLeaf> m_topology;
+    std::string m_logDir;
+    std::vector<ns3::Ptr<ns3::Socket>> m_acceptSockets;
 
     // Define the resource pool
     // key: leaf Id

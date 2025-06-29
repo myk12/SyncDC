@@ -294,3 +294,21 @@ SyncDCTopologySpineLeaf::GetNodeByServerId(uint32_t serverId)
     NS_ASSERT_MSG(m_serverId2NodeIdMap.find(serverId) != m_serverId2NodeIdMap.end(), "Server ID " << serverId << " not found");
     return m_serverId2NodeMap[serverId];
 }
+
+ns3::Ptr<ns3::Node>
+SyncDCTopologySpineLeaf::GetSpineNode(uint32_t spineId)
+{
+    NS_LOG_FUNCTION(this << spineId);
+    NS_LOG_INFO("Getting spine node by ID: " << spineId);
+    NS_ASSERT_MSG(spineId < m_spineNodes.GetN(), "Spine ID " << spineId << " out of range");
+    return m_spineNodes.Get(spineId);
+}
+
+ns3::Ptr<ns3::Node>
+SyncDCTopologySpineLeaf::GetLeafNode(uint32_t leafId)
+{
+    NS_LOG_FUNCTION(this << leafId);
+    NS_LOG_INFO("Getting leaf node by ID: " << leafId);
+    NS_ASSERT_MSG(leafId < m_leafNodes.GetN(), "Leaf ID " << leafId << " out of range");
+    return m_leafNodes.Get(leafId);
+}

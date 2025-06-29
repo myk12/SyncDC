@@ -16,15 +16,14 @@ ns3::TypeId
 FastPassArbiter::GetTypeId()
 {
     static ns3::TypeId tid = ns3::TypeId("FastPassArbiter")
-        .SetParent<ns3::Application>()
-        .SetGroupName("Applications")
-        .AddConstructor<FastPassArbiter>();
-    
+                                 .SetParent<ns3::Application>()
+                                 .SetGroupName("Applications")
+                                 .AddConstructor<FastPassArbiter>();
+
     return tid;
 }
 
-void
-FastPassArbiter::StartApplication()
+void FastPassArbiter::StartApplication()
 {
     // Start application implementation
     InitListener();
@@ -33,14 +32,12 @@ FastPassArbiter::StartApplication()
     InitResourcePool();
 }
 
-void
-FastPassArbiter::StopApplication()
+void FastPassArbiter::StopApplication()
 {
     // Stop application implementation
 }
 
-void
-FastPassArbiter::InitListener()
+void FastPassArbiter::InitListener()
 {
     // Init listener implementation
     m_listenSocket = ns3::Socket::CreateSocket(GetNode(), ns3::TcpSocketFactory::GetTypeId());
@@ -51,51 +48,63 @@ FastPassArbiter::InitListener()
 
     m_listenSocket->SetAcceptCallback(
         ns3::MakeCallback(&FastPassArbiter::HandleAccept, this),
-        ns3::MakeCallback(&FastPassArbiter::HandleAcceptError, this));
+        ns3::MakeCallback(&FastPassArbiter::HandleConnect, this));
+    // m_listenSocket->SetRecvCallback(ns3::MakeCallback(&FastPassArbiter::HandleRead, this));
+    m_listenSocket->SetCloseCallbacks(ns3::MakeCallback(&FastPassArbiter::HandleNormalClose, this),
+                                      ns3::MakeCallback(&FastPassArbiter::HandleErrorClose, this));
 
     NS_LOG_INFO("FastPassArbiter listening on port " << FASTPASS_ARBITER_PORT);
 }
 
-bool
-FastPassArbiter::HandleAccept(ns3::Ptr<ns3::Socket> socket, const ns3::Address& from)
+bool FastPassArbiter::HandleAccept(ns3::Ptr<ns3::Socket> socket, const ns3::Address &from)
 {
     NS_LOG_INFO("Accepted connection from " << from);
-    // Handle accepted connection
-    socket->SetRecvCallback(ns3::MakeCallback(&FastPassArbiter::HandleRead, this));
     return true; // Return true to accept the connection
 }
 
-void
-FastPassArbiter::HandleAcceptError(ns3::Ptr<ns3::Socket> socket, const ns3::Address& from)
+void FastPassArbiter::HandleConnect(ns3::Ptr<ns3::Socket> socket, const ns3::Address &from)
 {
-    NS_LOG_INFO("Error accepting connection from " << from);
-    // Handle error
+    NS_LOG_INFO("Connection established with " << from);
+    ns3::Ipv4Address ipaddr = ns3::InetSocketAddress::ConvertFrom(from).GetIpv4();
+    socket->SetRecvCallback(ns3::MakeCallback(&FastPassArbiter::HandleRead, this));
+    m_acceptSockets.push_back(socket);
 }
 
-void
-FastPassArbiter::HandleRead(ns3::Ptr<ns3::Socket> socket)
+void FastPassArbiter::HandleErrorClose(ns3::Ptr<ns3::Socket> socket)
 {
+    // Handle error close
+    NS_LOG_WARN("Arbiter Connection closed with error");
+}
+
+void FastPassArbiter::HandleNormalClose(ns3::Ptr<ns3::Socket> socket)
+{
+    // Handle normal close
+    NS_LOG_INFO("Arbiter Connection closed normally");
+}
+
+void FastPassArbiter::HandleRead(ns3::Ptr<ns3::Socket> socket)
+{
+    NS_LOG_INFO("Arbiter received a request packet.");
     // Handle read
     ns3::Ptr<ns3::Packet> packet;
     ns3::Address from;
     socket->GetSockName(from);
     ns3::Ipv4Address ipaddr = ns3::InetSocketAddress::ConvertFrom(from).GetIpv4();
 
-    while ((packet = socket->Recv())) {
+    while ((packet = socket->Recv()))
+    {
         NS_LOG_INFO("Received packet from " << ipaddr << " of size " << packet->GetSize());
         // Process the packet
         FastPassHeader header;
         NS_ASSERT_MSG(packet->PeekHeader(header), "Failed to peek header.");
-
         ProcessRequest(socket, header);
     }
 }
 
-void
-FastPassArbiter::ProcessRequest(ns3::Ptr<ns3::Socket> socket, FastPassHeader header)
+void FastPassArbiter::ProcessRequest(ns3::Ptr<ns3::Socket> socket, FastPassHeader header)
 {
     NS_LOG_FUNCTION(this << socket << header);
-    // Process request
+    NS_LOG_INFO("Processing request");
     uint32_t srcId = header.GetSrcId();
     uint32_t dstId = header.GetDstId();
     uint64_t dataSize = header.GetDataSize();
@@ -107,12 +116,15 @@ FastPassArbiter::ProcessRequest(ns3::Ptr<ns3::Socket> socket, FastPassHeader hea
 
     ns3::Time allocatedTime;
     // If src and dst are in the same leaf
-    if (srcLeafId == dstLeafId) {
+    if (srcLeafId == dstLeafId)
+    {
         // Send data to dst
-        allocatedTime = AllocateIntraLeafResource(srcId, dstId, dataSize);
-    } else {
+        allocatedTime = AllocateIntraLeafResource(dstLeafId, dataSize);
+    }
+    else
+    {
         // Send data to dst leaf
-        allocatedTime = AllocateInterLeafResource(srcId, dstLeafId, dataSize);
+        allocatedTime = AllocateInterLeafResource(srcLeafId, dstLeafId, dataSize);
     }
 
     // Response to client
@@ -126,8 +138,7 @@ FastPassArbiter::ProcessRequest(ns3::Ptr<ns3::Socket> socket, FastPassHeader hea
     SendResponse(socket, responsePacket);
 }
 
-void
-FastPassArbiter::InitResourcePool()
+void FastPassArbiter::InitResourcePool()
 {
     // Init resource pool
     NS_LOG_INFO("Init resource pool");
@@ -136,12 +147,14 @@ FastPassArbiter::InitResourcePool()
     uint32_t hostPerLeaf = m_topology->GetNumHostsPerLeaf();
 
     // Init resource pool
-    for (uint32_t i=0; i<numLeafs; i++) {
-        std::vector<ns3::Time> resourcePool(hostPerLeaf/2, ns3::Simulator::Now());
+    for (uint32_t i = 0; i < numLeafs; i++)
+    {
+        std::vector<ns3::Time> resourcePool(hostPerLeaf / 2, ns3::Simulator::Now());
         m_inLeafResourcePool[i] = resourcePool;
     }
 
-    for (uint32_t i=0; i<numLeafs; i++) {
+    for (uint32_t i = 0; i < numLeafs; i++)
+    {
         std::vector<ns3::Time> resourcePool(numSpines, ns3::Simulator::Now());
         m_crossLeafResourcePool[i] = resourcePool;
     }
@@ -153,18 +166,21 @@ ns3::Time
 FastPassArbiter::AllocateIntraLeafResource(uint32_t dstLeaf, uint64_t dataSize)
 {
     // Get the resource pool of the leaf
-    NS_LOG_INFO("Allocating intra-leaf resource");
+    NS_LOG_INFO("Allocating intra-leaf " << dstLeaf << " for " << dataSize << " bytes");
     std::vector<ns3::Time> &resourcePool = m_inLeafResourcePool[dstLeaf];
 
     // Find the first available resource
     uint32_t leastId = 0;
     ns3::Time leastTime = resourcePool[0];
-    for (uint32_t i=0; i<resourcePool.size(); i++) {
-        if (resourcePool[i] < leastTime) {
+    for (uint32_t i = 0; i < resourcePool.size(); i++)
+    {
+        if (resourcePool[i] < leastTime)
+        {
             leastId = i;
             leastTime = resourcePool[i];
         }
     }
+    NS_LOG_INFO("Find least resource with ID " << leastId << " with time " << leastTime);
 
     // Allocate the resource
     ns3::Time allocatedTime = leastTime;
@@ -172,7 +188,6 @@ FastPassArbiter::AllocateIntraLeafResource(uint32_t dstLeaf, uint64_t dataSize)
     // Update the resource pool
     resourcePool[leastId] += DataSize2TimeSlot(dataSize);
     NS_LOG_INFO("Allocated intra-leaf resource " << allocatedTime << " for " << dataSize << " bytes");
-
     return allocatedTime;
 }
 
@@ -190,12 +205,15 @@ FastPassArbiter::AllocateInterLeafResource(uint32_t srcLeafId, uint32_t dstLeaf,
     ns3::Time dstLeastTime = dstLeftResourcePool[0];
 
     // Find the first available resource
-    for (uint32_t i=0; i<srcLeftResourcePool.size(); i++) {
-        if (srcLeftResourcePool[i] < srcLeastTime) {
+    for (uint32_t i = 0; i < srcLeftResourcePool.size(); i++)
+    {
+        if (srcLeftResourcePool[i] < srcLeastTime)
+        {
             srcLeastId = i;
             srcLeastTime = srcLeftResourcePool[i];
         }
-        if (dstLeftResourcePool[i] < dstLeastTime) {
+        if (dstLeftResourcePool[i] < dstLeastTime)
+        {
             dstLeastId = i;
             dstLeastTime = dstLeftResourcePool[i];
         }
@@ -209,13 +227,12 @@ FastPassArbiter::AllocateInterLeafResource(uint32_t srcLeafId, uint32_t dstLeaf,
     srcLeftResourcePool[srcLeastId] = allocatedTime + allocatedSlot;
     dstLeftResourcePool[dstLeastId] = allocatedTime + allocatedSlot;
 
-    NS_LOG_INFO("Allocated inter-leaf resource " << allocatedTime << " for " << dataSize << " bytes");
+    NS_LOG_UNCOND("Allocated inter-leaf resource " << allocatedTime << " for " << dataSize << " bytes");
     // Response to client
     return allocatedTime;
 }
 
-void
-FastPassArbiter::SendResponse(ns3::Ptr<ns3::Socket> socket, ns3::Ptr<ns3::Packet> responsePacket)
+void FastPassArbiter::SendResponse(ns3::Ptr<ns3::Socket> socket, ns3::Ptr<ns3::Packet> responsePacket)
 {
     NS_LOG_INFO("Sending response to client");
     socket->Send(responsePacket);
@@ -231,4 +248,14 @@ FastPassArbiter::DataSize2TimeSlot(uint64_t dataSize)
     NS_LOG_DEBUG("Data size " << dataSize << " bytes, bandwidth " << bandwidth << " bps, time slot " << nanoTimeSlot << " ns");
 
     return ns3::Time(nanoTimeSlot);
+}
+
+void FastPassArbiter::SetTopology(std::shared_ptr<SyncDCTopologySpineLeaf> topology)
+{
+    m_topology = topology;
+}
+
+void FastPassArbiter::SetLogDir(std::string logDir)
+{
+    m_logDir = logDir;
 }

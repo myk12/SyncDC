@@ -49,6 +49,8 @@ public:
     void BindServerId2NodeId(uint32_t serverId, uint32_t nodeId);
     uint32_t GetLeafIdbyServerId(uint32_t serverId);
     ns3::Ptr<ns3::Node> GetNodeByServerId(uint32_t serverId);
+    ns3::Ptr<ns3::Node> GetSpineNode(uint32_t spineId);
+    ns3::Ptr<ns3::Node> GetLeafNode(uint32_t leafId);
 
 private:
     ns3::NodeContainer m_spineNodes;

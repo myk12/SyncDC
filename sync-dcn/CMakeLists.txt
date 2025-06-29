@@ -20,6 +20,9 @@ set(SOURCE_FILES
     ${ML_SOURCE_DIR}/app-all-reduce.cc
     ${ML_SOURCE_DIR}/app-ring-allreduce.cc
     ${ML_SOURCE_DIR}/app-ocs-allreduce.cc
+    ${ML_SOURCE_DIR}/app-fastpass-allreduce.cc
+    ${ML_SOURCE_DIR}/app-fastpass-arbiter.cc
+    ${ML_SOURCE_DIR}/header-fastpass.cc
     ${TOPO_SOURCE_DIR}/spine-leaf.cc
     ${TOPO_SOURCE_DIR}/optical-circuit-switching.cc
 )
@@ -29,6 +32,9 @@ set(HEADER_FILES
     ${ML_SOURCE_DIR}/app-all-reduce.h
     ${ML_SOURCE_DIR}/app-ring-allreduce.h
     ${ML_SOURCE_DIR}/app-ocs-allreduce.h
+    ${ML_SOURCE_DIR}/app-fastpass-allreduce.h
+    ${ML_SOURCE_DIR}/app-fastpass-arbiter.h
+    ${ML_SOURCE_DIR}/header-fastpass.h
     ${TOPO_SOURCE_DIR}/spine-leaf.h
     ${TOPO_SOURCE_DIR}/optical-circuit-switching.h
 )
@@ -46,6 +52,27 @@ add_executable(ml-ring-allreduce ${RING_ALLREDUCE_SOURCE}   )
 
 # Link required NS-3 libraries
 target_link_libraries(ml-ring-allreduce
+    ns3::network
+    ns3::internet
+    ns3::point-to-point
+    ns3::csma
+    ns3::applications
+    ns3::flow-monitor
+    # YAML C++ library
+    yaml-cpp
+)
+
+
+set(FAST_ALLREDUCE_SOURCE
+    tests/test-fastpass-ml-workload.cc
+    ${SOURCE_FILES}
+    ${HEADER_FILES}
+)
+
+add_executable(ml-fast-allreduce ${FAST_ALLREDUCE_SOURCE}   )
+
+# Link required NS-3 libraries
+target_link_libraries(ml-fast-allreduce
     ns3::network
     ns3::internet
     ns3::point-to-point

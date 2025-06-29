@@ -29,13 +29,15 @@ int main(int argc, char *argv[])
     ns3::LogComponentEnable("SpineLeafTest", ns3::LOG_INFO);
     ns3::LogComponentEnable("SyncDCTopologySpineLeaf", ns3::LOG_INFO);
     ns3::LogComponentEnable("AppRingAllReduce", ns3::LOG_INFO);
+    ns3::LogComponentEnable("FastPassHeader", ns3::LOG_DEBUG);
+    
 
     // Parse command line parameters
     std::string workloadFile;
     SpineLeafTopologyConfig config;
 
     // Default value
-    config.logDir = "logs";
+    config.logDir = "/tmp/all-reduce/";
     config.numSpines = 2;
     config.numLeaves = 4;
     config.numHostsPerLeaf = 8;
