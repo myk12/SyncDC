@@ -5,11 +5,11 @@
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
+#include "ns3/timestamp-tag.h"
 
 #include "app-fastpass-arbiter.h"
 #include "header-fastpass.h"
 
-#include <yaml-cpp/yaml.h>
 #include <vector>
 #include <fstream>
 
@@ -25,8 +25,10 @@ public:
     AppFastpassAllreduce(uint32_t selfIdx, // index in this ring 
                         std::vector<std::pair<uint32_t, ns3::Ipv4Address>> serverIDAddrs,  // 
                         uint16_t port,  // service port
-                        uint64_t msgSize, std::string logDir,
-                        ns3::InetSocketAddress arbiterAddr);
+                        uint64_t msgSize, 
+                        std::string logFile,
+                        ns3::InetSocketAddress arbiterAddr,
+                        uint32_t jobID);
     ~AppFastpassAllreduce();
 
     void StartApplication();
@@ -79,7 +81,11 @@ private:
 
     // Log file
     std::ofstream m_logfile;
-    std::string m_logDir;
+    std::ofstream m_delayLogfile;
+    std::string m_logPath;
+    std::string m_delayLogPath;
+
+    uint32_t m_jobID;
 
     std::vector<ns3::Ptr<ns3::Socket>> m_arbiterSockets;
 };

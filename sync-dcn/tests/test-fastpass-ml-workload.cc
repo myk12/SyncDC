@@ -160,13 +160,15 @@ int main(int argc, char *argv[])
 
         // Install Fastpass allreduce
         NS_LOG_INFO("Install AllReduce Application");
+        std::string logPath = topology->GetLogDir() + "/job_" + std::to_string(jobId) + ".log";
         for (uint32_t i=0; i<requestNodes; i++)
         {
             ns3::Ptr<AppFastpassAllreduce> app = ns3::CreateObject<AppFastpassAllreduce>(i, selectedServerIdIpv4,
                                                                                          servicePort, // for each round, we have different port
                                                                                          topology->GetMsgSize(),
-                                                                                         topology->GetLogDir(),
-                                                                                         arbiterAddr);
+                                                                                         logPath,
+                                                                                         arbiterAddr,
+                                                                                        jobId);
             selectedNodes.Get(i)->AddApplication(app);
             selectedNodesApps.Add(app);
         }

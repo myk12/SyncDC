@@ -15,6 +15,7 @@
 #include "ns3/event-id.h"
 #include "ns3/ptr.h"
 #include "ns3/traced-callback.h"
+#include "ns3/timestamp-tag.h"
 
 namespace ns3
 {
@@ -118,7 +119,7 @@ class BulkSendApplication : public SourceApplication
     uint32_t m_seq{0};                   //!< Sequence
     Ptr<Packet> m_unsentPacket;          //!< Variable to cache unsent packet
     bool m_enableSeqTsSizeHeader{false}; //!< Enable or disable the SeqTsSizeHeader
-
+    bool m_enableTimestampTag{false};    //!< Enable or disable the TimestampTag
     /// Traced Callback: sent packets
     TracedCallback<Ptr<const Packet>> m_txTrace;
 

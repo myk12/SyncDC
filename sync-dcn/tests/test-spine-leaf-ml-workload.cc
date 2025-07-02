@@ -33,11 +33,11 @@ int main(int argc, char *argv[])
     
 
     // Parse command line parameters
-    std::string workloadFile;
+    std::string workloadFile = "workload.csv";
     SpineLeafTopologyConfig config;
 
     // Default value
-    config.logDir = "/tmp/all-reduce/";
+    config.logDir = "/tmp/ring/";
     config.numSpines = 2;
     config.numLeaves = 4;
     config.numHostsPerLeaf = 8;
@@ -134,13 +134,15 @@ int main(int argc, char *argv[])
         }
 
         // Install AllReduce Application
+        std::string logPath = topology->GetLogDir() + "/job_" + std::to_string(jobId) + ".log";
         NS_LOG_INFO("Install AllReduce Application");
         for (uint32_t i = 0; i < requestNodes; i++)
         {
             ns3::Ptr<AppRingAllReduce> app = ns3::CreateObject<AppRingAllReduce>(i, selectedServerIdIpv4,
                                                                                  servicePort, // for each round, we have different port
-                                                                                 topology->GetMsgSize(),
-                                                                                 topology->GetLogDir());
+                                                                                  topology->GetMsgSize(),
+                                                                                  jobId,
+                                                                                  logPath);
             selectedNodes.Get(i)->AddApplication(app);
             selectedNodesApps.Add(app);
         }

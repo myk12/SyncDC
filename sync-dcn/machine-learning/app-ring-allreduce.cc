@@ -23,7 +23,8 @@ AppRingAllReduce::AppRingAllReduce(uint32_t selfIdx,
                                 std::vector<std::pair<uint32_t, ns3::Ipv4Address>> serverIDAddrs,
                                 uint16_t port,
                                 uint64_t msgSize,
-                                std::string logDir)
+                                uint32_t jobID,
+                                std::string logPath)
     : m_selfIdx(selfIdx),
       m_serverIDAddrs(serverIDAddrs),
       m_servicePort(port),
@@ -31,7 +32,8 @@ AppRingAllReduce::AppRingAllReduce(uint32_t selfIdx,
       m_serversNum(serverIDAddrs.size()),
       m_sendAddr(serverIDAddrs[selfIdx].second, port),
       m_msgSize(msgSize),
-      m_logDir(logDir)
+      m_jobID(jobID),
+      m_logPath(logPath)
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("Server " << m_selfNodeId << " has " << m_serversNum << " servers");
@@ -44,8 +46,10 @@ AppRingAllReduce::AppRingAllReduce(uint32_t selfIdx,
     m_nextIdx = (selfIdx + 1) % m_serversNum;
 
     // Init log file
-    std::string logFileName = logDir + "/node-" + std::to_string(m_selfNodeId) + "-" + std::to_string(m_servicePort) + ".log";
+    std::string logFileName = m_logPath;
+    std::string logDelayFileName = logFileName + ".delay";
     m_logfile.open(logFileName, std::ios::out | std::ios::app);
+    m_delayLogfile.open(logDelayFileName, std::ios::out | std::ios::app);
 }
 
 AppRingAllReduce::~AppRingAllReduce()
@@ -116,10 +120,21 @@ void AppRingAllReduce::RecvDataCallback(ns3::Ptr<ns3::Socket> socket)
 
     // Receive data
     ns3::Ptr<ns3::Packet> packet;
-    while (packet = socket->Recv())
+    while ((packet = socket->Recv()))
     {
         // Process data
         m_recvBytes += packet->GetSize();
+
+        // Get the timestamp tag
+        ns3::TimestampTag timestampTag;
+        if (packet->FindFirstMatchingByteTag(timestampTag))
+        {
+            ns3::Time sendTs = timestampTag.GetTimestamp();
+            ns3::Time recvTs = ns3::Simulator::Now();
+            ns3::Time delay = recvTs - sendTs;
+            m_delayLogfile << delay.GetNanoSeconds() << std::endl;
+        }
+
         //NS_LOG_INFO("Server " << m_selfIdx << " receviced a packet");
         // Check if we have received enough data
         // for this round
@@ -136,6 +151,7 @@ void AppRingAllReduce::RecvDataCallback(ns3::Ptr<ns3::Socket> socket)
             {
                 NS_LOG_INFO("Recv round " << m_recvRound << " finished");
                 StopApplication();
+                m_logfile << ns3::Simulator::Now().GetNanoSeconds() << "," << m_jobID <<",FINISH" << std::endl; // LOG the completion time
                 return;
             }
 
@@ -198,6 +214,7 @@ void AppRingAllReduce::StartBulkSendInstance(uint32_t sendRound)
     ns3::Ptr<ns3::BulkSendApplication> bulkSendApp = ns3::CreateObject<ns3::BulkSendApplication>();
     bulkSendApp->SetAttribute("MaxBytes", ns3::UintegerValue(m_msgSize));
     bulkSendApp->SetAttribute("Remote", ns3::AddressValue(m_sendAddr));
+    bulkSendApp->SetAttribute("EnableTimestampTag", ns3::BooleanValue(true));
     m_sendApps[sendRound] = bulkSendApp;
 
     // Install apps

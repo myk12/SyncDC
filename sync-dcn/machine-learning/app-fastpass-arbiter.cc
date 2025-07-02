@@ -186,7 +186,8 @@ FastPassArbiter::AllocateIntraLeafResource(uint32_t dstLeaf, uint64_t dataSize)
     ns3::Time allocatedTime = leastTime;
 
     // Update the resource pool
-    resourcePool[leastId] += DataSize2TimeSlot(dataSize);
+    //resourcePool[leastId] += DataSize2TimeSlot(dataSize);
+    resourcePool[leastId] += ns3::MicroSeconds(160);
     NS_LOG_INFO("Allocated intra-leaf resource " << allocatedTime << " for " << dataSize << " bytes");
     return allocatedTime;
 }
@@ -223,7 +224,8 @@ FastPassArbiter::AllocateInterLeafResource(uint32_t srcLeafId, uint32_t dstLeaf,
     ns3::Time allocatedTime = std::max(srcLeastTime, dstLeastTime);
 
     // Update the resource pool
-    ns3::Time allocatedSlot = DataSize2TimeSlot(dataSize);
+    //ns3::Time allocatedSlot = DataSize2TimeSlot(dataSize);
+    ns3::Time allocatedSlot = ns3::MicroSeconds(320);
     srcLeftResourcePool[srcLeastId] = allocatedTime + allocatedSlot;
     dstLeftResourcePool[dstLeastId] = allocatedTime + allocatedSlot;
 
@@ -245,7 +247,7 @@ FastPassArbiter::DataSize2TimeSlot(uint64_t dataSize)
     std::string bandwidth = m_topology->GetLinkBandwidth();
     uint64_t bandwidthInBps = BandwidthStr2Bps(bandwidth);
     uint64_t nanoTimeSlot = dataSize * 8 / bandwidthInBps;
-    NS_LOG_DEBUG("Data size " << dataSize << " bytes, bandwidth " << bandwidth << " bps, time slot " << nanoTimeSlot << " ns");
+    NS_LOG_INFO("Data size " << dataSize << " bytes, bandwidth " << bandwidth << " bps, time slot " << nanoTimeSlot << " ns");
 
     return ns3::Time(nanoTimeSlot);
 }

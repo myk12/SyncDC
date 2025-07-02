@@ -58,10 +58,7 @@ target_link_libraries(ml-ring-allreduce
     ns3::csma
     ns3::applications
     ns3::flow-monitor
-    # YAML C++ library
-    yaml-cpp
 )
-
 
 set(FAST_ALLREDUCE_SOURCE
     tests/test-fastpass-ml-workload.cc
@@ -79,6 +76,4 @@ target_link_libraries(ml-fast-allreduce
     ns3::csma
     ns3::applications
     ns3::flow-monitor
-    # YAML C++ library
-    yaml-cpp
 )

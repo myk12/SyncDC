@@ -3,12 +3,16 @@ import io
 import matplotlib.pyplot as plt
 import argparse
 import os
+import seaborn as sns
 
 # Function to parse command-line arguments
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Schedule AI inference workload with OCS.")
     parser.add_argument("--transfer-rate", type=float, default=100, help="Network transfer rate in Gbps")
-    parser.add_argument("--csv-file", type=str, default="ai_inference_workload.csv", help="Path to CSV file")
+    parser.add_argument("--csv-file", type=str, default="workload.csv", help="Path to CSV file")
+    parser.add_argument("--total-servers", type=int, default=32, help="Total number of servers")
+    parser.add_argument("--ocs-sync-error", type=int, default=10, help="Time synchronization error in ns")
+    parser.add_argument("--ocs-config-time", type=int, default=100, help="Time for changing the circuit in ns")
     args = parser.parse_args()
     if args.transfer_rate <= 0:
         raise ValueError("Transfer rate must be positive")
@@ -27,7 +31,7 @@ def parse_workload(csv_data):
                      names=['job_id', 'servers', 'arrival_time', 'data_volume'],
                      usecols=[0, 1, 2, 3])
     df = df.dropna()
-    df = df[df['servers'].isin([4, 8, 16, 32])]
+    df = df[df['servers'].isin([4, 6, 8, 10])]
     df['data_volume'] = df['data_volume'].astype(float)  # Data volume in MB
     df['arrival_time'] = df['arrival_time'].astype(float) / 1e9  # Convert ns to seconds
     df['servers'] = df['servers'].astype(int)
@@ -41,11 +45,16 @@ def calculate_persist_time(data_volume_mb, num_servers, transfer_rate_gbps):
     persist_time = (data_volume_mb * 8 / transfer_rate_gbps) * 1e-3 * num_servers
     return persist_time
 
-# Function to calculate persist time
-def calculate_persist_time(data_volume_mb, num_servers, transfer_rate_gbps):
-    # Persist time = (data_volume_MB * 8 / transfer_rate_Gbps) * 10^-3 * num_servers
-    persist_time = (data_volume_mb * 8 / transfer_rate_gbps) * 1e-3 * num_servers
-    return persist_time
+# Function to plot workload
+def plot_workload(jobs, transfer_rate_gbps):
+    # Plot arrival times
+    plt.figure(figsize=(10, 5))
+    plt.plot([j['arrival_time'] for j in jobs], [j['job_id'] for j in jobs], 'o', color='blue', label='Arrival time')
+    plt.xlabel('Arrival time (s)')
+    plt.ylabel('Job ID')
+    plt.title(f'Arrival times (Transfer rate: {transfer_rate_gbps} Gbps)')
+    plt.legend()
+    plt.show()
 
 # Scheduling algorithm
 def schedule_jobs(jobs, transfer_rate_gbps, total_servers=32):
@@ -117,7 +126,7 @@ def schedule_jobs(jobs, transfer_rate_gbps, total_servers=32):
 # Visualization function
 def plot_gantt_chart(schedule):
     fig, ax = plt.subplots(figsize=(12, 8))
-    colors = {4: 'skyblue', 8: 'lightgreen', 16: 'salmon', 32: 'orchid'}
+    colors = {4: 'skyblue', 6: 'lightgreen', 8: 'salmon', 10: 'orchid'}
     for job in schedule:
         ax.barh(job['job_id'], job['end_time'] - job['start_time'], left=job['start_time'],
                 height=0.4, color=colors[job['servers']], edgecolor='black',
@@ -148,15 +157,50 @@ def main():
     # Schedule jobs
     schedule, makespan = schedule_jobs(jobs, transfer_rate_gbps)
     
+    # Output CSV file : job_id, start_time, end_time
+    with open('ocs-data.csv', 'w') as f:
+        f.write('job_id,start_time,end_time\n')
+        for job in schedule:
+            f.write(f"{job['job_id']},{job['start_time']},{job['end_time']}\n")
+    
+    # Plot workload
+    plot_workload(jobs, transfer_rate_gbps)
+    
     # Output schedule
     print("Optimized Schedule:")
     for job in sorted(schedule, key=lambda x: x['job_id']):
         print(f"Job {job['job_id']}: Servers={job['servers']}, Start={job['start_time']:.6f}s, "
               f"End={job['end_time']:.6f}s, Persist Time={job['persist_time']:.6f}s")
     print(f"Makespan: {makespan:.6f} seconds")
-    
+        
     # Generate Gantt chart
     plot_gantt_chart(schedule)
+    
+    # join jobs and schedule, adding start and end times
+    jobs = pd.DataFrame(jobs)
+    schedule = pd.DataFrame(schedule)
+    jobs = jobs.merge(schedule, on='job_id', how='left')
+    jobs.to_csv('jobs.csv', index=False)
+    
+    # class jobs to different types according to their servers
+    # and then plot the CDF of last time = end_time - arrival_time
+    jobs['type'] = jobs['servers_x'].apply(lambda x: '4' if x == 4 else '6' if x == 6 else '8' if x == 8 else '12')
+    jobs['last_time'] = jobs['end_time'] - jobs['arrival_time']
+    
+    # save to csv
+    jobs.to_csv('jobs.csv', index=False)
+
+    # for each type, plot the CDF of last time using seaborn
+    sns.set()
+    for type in jobs['type'].unique():
+        sns.kdeplot(jobs[jobs['type'] == type]['last_time'], cumulative=True, label=type)
+    plt.legend()
+    plt.title('CDF of Last Time')
+    plt.xlabel('Last Time (seconds)')
+    plt.ylabel('CDF')
+    plt.savefig('cdf_last_time.pdf')
+    
+    # for each type, plot the CDF of persist time using seaborn
 
 if __name__ == "__main__":
     main()

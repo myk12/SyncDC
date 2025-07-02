@@ -59,6 +59,11 @@ BulkSendApplication::GetTypeId()
                           BooleanValue(false),
                           MakeBooleanAccessor(&BulkSendApplication::m_enableSeqTsSizeHeader),
                           MakeBooleanChecker())
+            .AddAttribute("EnableTimestampTag",
+                          "Add TimestampTag to each packet",
+                          BooleanValue(false),
+                          MakeBooleanAccessor(&BulkSendApplication::m_enableTimestampTag),
+                          MakeBooleanChecker())
             .AddTraceSource("Tx",
                             "A new packet is sent",
                             MakeTraceSourceAccessor(&BulkSendApplication::m_txTrace),
@@ -242,6 +247,12 @@ BulkSendApplication::SendData(const Address& from, const Address& to)
             // Trace before adding header, for consistency with PacketSink
             m_txTraceWithSeqTsSize(packet, from, to, header);
             packet->AddHeader(header);
+        }
+        else if (m_enableTimestampTag)
+        {
+            TimestampTag tag(Simulator::Now());
+            packet = Create<Packet>(toSend);
+            packet->AddByteTag(tag);
         }
         else
         {

@@ -14,7 +14,6 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <yaml-cpp/yaml.h>
 
 typedef struct SpineLeafTopologyConfig {
     uint32_t numSpines;          // Number of spine switches
@@ -43,8 +42,6 @@ public:
     uint32_t GetNumHostsPerLeaf();
 
     std::vector<ns3::NodeContainer> GetLeafNodeHosts();
-
-    void ExportTopologyToYaml(const std::string& filename);
 
     void BindServerId2NodeId(uint32_t serverId, uint32_t nodeId);
     uint32_t GetLeafIdbyServerId(uint32_t serverId);

@@ -3,3 +3,4 @@ build
 result
 *.png
 *.pdf
+*.DS_Store

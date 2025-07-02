@@ -8,7 +8,6 @@
 #include "ns3/applications-module.h"
 #include "ns3/flow-monitor-module.h"
 
-#include <yaml-cpp/yaml.h>
 #include <vector>
 #include <fstream>
 
@@ -21,7 +20,9 @@ class AppRingAllReduce : public ns3::Application {
         AppRingAllReduce(uint32_t selfIdx, // index in this ring 
                         std::vector<std::pair<uint32_t, ns3::Ipv4Address>> serverIDAddrs,  // 
                         uint16_t port,  // service port
-                        uint64_t msgSize, std::string logDir);
+                        uint64_t msgSize,
+                        uint32_t jobID,
+                        std::string logDir);
         ~AppRingAllReduce();
 
         void StartApplication();
@@ -62,8 +63,11 @@ class AppRingAllReduce : public ns3::Application {
         uint64_t m_msgSize; // Size of the message to send in bytes
 
         // Log file
+        uint32_t m_jobID;
         std::ofstream m_logfile;
-        std::string m_logDir;
+        std::string m_logPath;
+        std::string m_delayLogPath;
+        std::ofstream m_delayLogfile;
 };
 
 #endif
