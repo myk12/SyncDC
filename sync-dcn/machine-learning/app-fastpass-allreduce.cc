@@ -129,10 +129,10 @@ void AppFastpassAllreduce::RecvDataCallback(ns3::Ptr<ns3::Socket> socket)
         ns3::TimestampTag timestampTag;
         if (packet->FindFirstMatchingByteTag(timestampTag))
         {
-            ns3::Time sendTs = timestampTag.GetTimestamp();
-            ns3::Time recvTs = ns3::Simulator::Now();
-            ns3::Time delay = recvTs - sendTs;
-            m_delayLogfile << delay.GetNanoSeconds() << std::endl;
+        ns3::Time sendTs = timestampTag.GetTimestamp();
+        ns3::Time recvTs = ns3::Simulator::Now();
+        ns3::Time delay = recvTs - sendTs;
+        m_delayLogfile << delay.GetNanoSeconds() << std::endl;
         }
 
         // NS_LOG_INFO("Server " << m_selfIdx << " receviced a packet");
@@ -303,15 +303,15 @@ void AppFastpassAllreduce::StartBulkSendRound(uint32_t sendRound, ns3::Time star
     // Start apps
     NS_LOG_INFO("Start BulkSendApp " << sendRound << " at " << ns3::Simulator::Now().GetSeconds() << "s, with Bytes " << m_msgSize);
     ns3::Time now = ns3::Simulator::Now();
-    if (m_startTime <= now)
+    if (startTime <= now)
     {
         bulkSendApp->SetStartTime(ns3::Seconds(0.0));
-        NS_LOG_INFO("Start BulkSendApp with startTime <= now " << m_startTime << " for round " << sendRound << " at " << ns3::Simulator::Now().GetSeconds() << "s, with Bytes " << m_msgSize);
+        NS_LOG_INFO("Start BulkSendApp with startTime <= now " << startTime << " for round " << sendRound << " at " << ns3::Simulator::Now().GetSeconds() << "s, with Bytes " << m_msgSize);
     }
     else
     {
-        bulkSendApp->SetStartTime(m_startTime - now);
-        NS_LOG_INFO("Start BulkSendApp with startTime > now " << m_startTime << " for round " << sendRound << " at " << ns3::Simulator::Now().GetSeconds() << "s, with Bytes " << m_msgSize);
+        bulkSendApp->SetStartTime(startTime - now);
+        NS_LOG_INFO("Start BulkSendApp with startTime > now " << startTime << " for round " << sendRound << " at " << ns3::Simulator::Now().GetSeconds() << "s, with Bytes " << m_msgSize);
     }
     m_logfile << ns3::Simulator::Now().GetNanoSeconds() << ",SEND," << sendRound << std::endl;
 }
