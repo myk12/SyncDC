@@ -63,7 +63,6 @@ int main(int argc, char *argv[])
     NS_LOG_INFO("Number of Hosts per Leaf: " << config.numHostsPerLeaf);
     NS_LOG_INFO("Link Bandwidth: " << config.linkBandwidth);
     NS_LOG_INFO("Link Delay: " << config.linkDelay);
-    NS_LOG_INFO("===============================================");
 
     // Init Topology
     NS_LOG_INFO("Init Topology");
@@ -193,6 +192,7 @@ int main(int argc, char *argv[])
     // Print flow statistics
     flowMonitor->SerializeToXmlFile("fastpass-ml-workload-flow.xml", true, true);
     NS_LOG_INFO("Flow statistics is saved to fastpass-ml-workload-flow.xml");
+    NS_LOG_INFO("===============================================");
 
     return 0;
 }

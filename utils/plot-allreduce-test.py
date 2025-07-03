@@ -7,12 +7,13 @@ import pandas as pd
 import seaborn as sns
 
 class AllReducePlot:
-    def __init__(self, base_path, workload, ring_path, fastpass_path, ocs_path):
+    def __init__(self, base_path, workload, ring_path, fastpass_path, ocs_path, ocs_delay_path):
         self.base_path = base_path
         self.workload = workload
         self.ring_path = ring_path
         self.fastpass_path = fastpass_path
         self.ocs_path = ocs_path
+        self.ocs_delay_path = ocs_delay_path
     
     def parse_workload(self):
         """
@@ -52,8 +53,13 @@ class AllReducePlot:
         # Parse ring data, list all files in the directory and pasre each file
         # filename: job_<job_id>.csv
         ring_files = os.listdir(ring_file_dir)
+        
+        ## Classify two types of files: jobs completed time(*.log) and packet delay(*.delay)
+        jobs_files = [file for file in ring_files if file.endswith('.log')]
+        delay_files = [file for file in ring_files if file.endswith('.delay')]
+
         ring_data = {}
-        for file in ring_files:
+        for file in jobs_files:
             # Parse file name and get job id
             job_id = int(file.split('_')[1].split('.')[0])
             # Start time is the first elem of the first line
@@ -68,7 +74,15 @@ class AllReducePlot:
                             columns=['job_id', 'start_time', 'end_time'])
         self.ring_df = df
 
-        return df
+        delay_list = []
+        for file in delay_files:
+            # Open file and read each line as a delay
+            with open(os.path.join(ring_file_dir, file), 'r') as f:
+                delay_list.extend([int(line) for line in f.readlines()])
+        df = pd.DataFrame(delay_list, columns=['delay'])
+        self.ring_delay_df = df
+
+        return self.ring_df, self.ring_delay_df
     
     def parse_fastpass_data(self):
         """
@@ -86,8 +100,13 @@ class AllReducePlot:
         
         # Parse fastpass data, list all files in the directory and pasre each file
         fastpass_files = os.listdir(fastpass_file_dir)
+        
+        # Classify two types of files: jobs completed time(*.log) and packet delay(*.delay)
+        jobs_files = [file for file in fastpass_files if file.endswith('.log')]
+        delay_files = [file for file in fastpass_files if file.endswith('.delay')]
+        
         fastpass_data = {}
-        for file in fastpass_files:
+        for file in jobs_files:
             job_id = int(file.split('_')[1].split('.')[0])
             with open(os.path.join(fastpass_file_dir, file), 'r') as f:
                 start_time = float(f.readline().split(',')[0])
@@ -99,7 +118,15 @@ class AllReducePlot:
                           columns=['job_id', 'start_time', 'end_time'])
         self.fastpass_df = df
         
-        return df
+        delay_list = []
+        for file in delay_files:
+            # Open file and read each line as a delay
+            with open(os.path.join(fastpass_file_dir, file), 'r') as f:
+                delay_list.extend([int(line) for line in f.readlines()])
+        df = pd.DataFrame(delay_list, columns=['delay'])
+        self.fastpass_delay_df = df
+        
+        return self.fastpass_df, self.fastpass_delay_df
 
     def parse_ocs_data(self):
         """
@@ -117,19 +144,58 @@ class AllReducePlot:
 
         # Read CSV file : job_id, start_time, end_time
         df = pd.read_csv(ocs_file, sep=',')
-        # Turn seconds to nanoseconds
-        df['start_time'] = df['start_time'] * 1e9
-        df['end_time'] = df['end_time'] * 1e9
         self.ocs_df = df
         
+        # Parse OCS delay
+        ocs_delay_dir = os.path.join(self.base_path, self.ocs_delay_path)
+        if not os.path.exists(ocs_delay_dir):
+            logging.error(f"OCS delay directory {ocs_delay_dir} does not exist.")
+            return None
+
+        delay_files = os.listdir(ocs_delay_dir)
+        delay_list = []
+        for file in delay_files:
+            # Open file and read each line as a delay
+            with open(os.path.join(ocs_delay_dir, file), 'r') as f:
+                delay_list.extend([int(line) for line in f.readlines()])
+        
+        df = pd.DataFrame(delay_list, columns=['delay'])
+        self.ocs_delay_df = df
+
         return df
 
-    def plot(self):
+    def plot_job_CT_CDF_all_in_one(self):
+        
+        # Plot CDF of execution time
+        plt.figure()
+        sns.set()
+        ring_df = pd.merge(self.workload_df, self.ring_df, on='job_id', how='left')
+        fastpass_df = pd.merge(self.workload_df, self.fastpass_df, on='job_id', how='left')
+        ocs_df = pd.merge(self.workload_df, self.ocs_df, on='job_id', how='left')
+        # Plot total time CDF end_time -  - create_time, ns to ms
+        ring_plot_ms = (ring_df['end_time'] - ring_df['create_time']) / 1e6
+        fastpass_plot_ms = (fastpass_df['end_time'] - fastpass_df['create_time']) / 1e6
+        ocs_plot_ms = (ocs_df['end_time'] - ocs_df['create_time']) / 1e6
+
+        sns.ecdfplot(data=ring_plot_ms, label='ring')
+        sns.ecdfplot(data=fastpass_plot_ms, label='fastpass')
+        sns.ecdfplot(data=ocs_plot_ms, label='ocs')
+        plt.legend()
+        plt.xlabel('Job completion time (ms)')
+        plt.ylabel('CDF')
+        plt.title('CDF of Job Completion Time')
+        plt.tight_layout()
+
+        plt.savefig('jobs_completion_time.pdf')
+        plt.close()
+
+    def plot_job_CT_CDF(self):
         """
         Plot the workload, ring, fastpass and ocs data.
         """
         # Change time columns from ns to ms
         self.workload_df['create_time'] = self.workload_df['create_time'] / 1e6
+        print(self.workload_df)
         #self.workload_df['start_time'] = self.workload_df['start_time'] / 1e6
         self.ring_df['start_time'] = self.ring_df['start_time'] / 1e6
         self.ring_df['end_time'] = self.ring_df['end_time'] / 1e6
@@ -182,6 +248,41 @@ class AllReducePlot:
         plt.legend()
         plt.savefig('cdf_allreduce.pdf')
         plt.close()
+    
+    def plot_packet_delay_CDF(self):
+        # ns to us
+        ring_delay_data = self.ring_delay_df['delay']/1e3
+        fastpass_delay_data = self.fastpass_delay_df['delay']/1e3
+        ocs_delay_data = self.ocs_delay_df['delay']/1e3
+        # generate all 1 list
+        fabric_delay_data = np.ones_like(ring_delay_data)
+        
+        # Plot The delay CDF of ring, fastpass and ocs
+        sns.set()
+        # Plot in one figure
+        plt.figure()
+        sns.ecdfplot(data=fabric_delay_data, label='fabric')
+        sns.ecdfplot(data=ring_delay_data, label='ring')
+        sns.ecdfplot(data=fastpass_delay_data, label='fastpass')
+        sns.ecdfplot(data=ocs_delay_data, label='ocs')
+        
+        # Set x to log scale
+        plt.xscale('log')
+        plt.xlabel('Packet delay (us)')
+        plt.ylabel('CDF')
+        plt.title('CDF of packet delay')
+        
+        ax = plt.gca()
+        ax.spines['top'].set_linewidth(2)
+        ax.spines['right'].set_linewidth(2)
+        ax.spines['bottom'].set_linewidth(2)
+        ax.spines['left'].set_linewidth(2)
+        
+        plt.tight_layout()
+        # save fig
+        plt.legend()
+        plt.savefig('packet_delay.pdf')
+        plt.close()
 
 def main():   
     # Parse command-line arguments
@@ -191,23 +292,21 @@ def main():
     args.add_argument('--ring-path', type=str, default='ring')
     args.add_argument('--fastpass-path', type=str, default='fastpass')
     args.add_argument('--ocs-path', type=str, default='ocs-data.csv')
+    args.add_argument('--ocs-delay-path', type=str, default='ocs')
     args = args.parse_args()
-    
+
     # Init logging
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     
-    plot = AllReducePlot(args.root_path, args.workload, args.ring_path, args.fastpass_path, args.ocs_path)
-    workload_df = plot.parse_workload()
-    ring_df = plot.parse_ring_data()
-    fastpass_df =  plot.parse_fastpass_data()
-    ocs_df = plot.parse_ocs_data()
+    plot = AllReducePlot(args.root_path, args.workload, args.ring_path, args.fastpass_path, args.ocs_path, args.ocs_delay_path)
+    plot.parse_workload()
+    plot.parse_ring_data()
+    plot.parse_fastpass_data()
+    plot.parse_ocs_data()
 
-    print(workload_df)
-    print(ring_df)
-    print(fastpass_df)
-    print(ocs_df)
-
-    plot.plot()
+    #plot.plot_job_CT_CDF()
+    plot.plot_packet_delay_CDF()
+    plot.plot_job_CT_CDF_all_in_one()
 
 if __name__ == '__main__':
     main()

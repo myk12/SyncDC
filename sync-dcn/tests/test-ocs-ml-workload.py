@@ -45,17 +45,6 @@ def calculate_persist_time(data_volume_mb, num_servers, transfer_rate_gbps):
     persist_time = (data_volume_mb * 8 / transfer_rate_gbps) * 1e-3 * num_servers
     return persist_time
 
-# Function to plot workload
-def plot_workload(jobs, transfer_rate_gbps):
-    # Plot arrival times
-    plt.figure(figsize=(10, 5))
-    plt.plot([j['arrival_time'] for j in jobs], [j['job_id'] for j in jobs], 'o', color='blue', label='Arrival time')
-    plt.xlabel('Arrival time (s)')
-    plt.ylabel('Job ID')
-    plt.title(f'Arrival times (Transfer rate: {transfer_rate_gbps} Gbps)')
-    plt.legend()
-    plt.show()
-
 # Scheduling algorithm
 def schedule_jobs(jobs, transfer_rate_gbps, total_servers=32):
     print(f"Total servers: {total_servers}")
@@ -137,7 +126,7 @@ def plot_gantt_chart(schedule):
     ax.grid(True)
     ax.legend()
     plt.tight_layout()
-    plt.savefig('gantt_chart_updated.pdf')
+    plt.savefig('OCS-GanttChart.pdf')
     plt.close()
 
 # Main execution
@@ -161,10 +150,10 @@ def main():
     with open('ocs-data.csv', 'w') as f:
         f.write('job_id,start_time,end_time\n')
         for job in schedule:
+            # Seconds to nanoseconds and to integer
+            job['start_time'] = int(job['start_time']*1e9)
+            job['end_time'] = int(job['end_time']*1e9)
             f.write(f"{job['job_id']},{job['start_time']},{job['end_time']}\n")
-    
-    # Plot workload
-    plot_workload(jobs, transfer_rate_gbps)
     
     # Output schedule
     print("Optimized Schedule:")
@@ -177,28 +166,28 @@ def main():
     plot_gantt_chart(schedule)
     
     # join jobs and schedule, adding start and end times
-    jobs = pd.DataFrame(jobs)
-    schedule = pd.DataFrame(schedule)
-    jobs = jobs.merge(schedule, on='job_id', how='left')
-    jobs.to_csv('jobs.csv', index=False)
+    #jobs = pd.DataFrame(jobs)
+    #schedule = pd.DataFrame(schedule)
+    #jobs = jobs.merge(schedule, on='job_id', how='left')
+    #jobs.to_csv('jobs.csv', index=False)
     
-    # class jobs to different types according to their servers
-    # and then plot the CDF of last time = end_time - arrival_time
-    jobs['type'] = jobs['servers_x'].apply(lambda x: '4' if x == 4 else '6' if x == 6 else '8' if x == 8 else '12')
-    jobs['last_time'] = jobs['end_time'] - jobs['arrival_time']
-    
-    # save to csv
-    jobs.to_csv('jobs.csv', index=False)
+    ## class jobs to different types according to their servers
+    ## and then plot the CDF of last time = end_time - arrival_time
+    #jobs['type'] = jobs['servers_x'].apply(lambda x: '4' if x == 4 else '6' if x == 6 else '8' if x == 8 else '12')
+    #jobs['last_time'] = jobs['end_time'] - jobs['arrival_time']
 
-    # for each type, plot the CDF of last time using seaborn
-    sns.set()
-    for type in jobs['type'].unique():
-        sns.kdeplot(jobs[jobs['type'] == type]['last_time'], cumulative=True, label=type)
-    plt.legend()
-    plt.title('CDF of Last Time')
-    plt.xlabel('Last Time (seconds)')
-    plt.ylabel('CDF')
-    plt.savefig('cdf_last_time.pdf')
+    ## save to csv
+    #jobs.to_csv('jobs.csv', index=False)
+
+    ## for each type, plot the CDF of last time using seaborn
+    #sns.set()
+    #for type in jobs['type'].unique():
+    #    sns.kdeplot(jobs[jobs['type'] == type]['last_time'], cumulative=True, label=type)
+    #plt.legend()
+    #plt.title('CDF of Last Time')
+    #plt.xlabel('Last Time (seconds)')
+    #plt.ylabel('CDF')
+    #plt.savefig('cdf_last_time.pdf')
     
     # for each type, plot the CDF of persist time using seaborn
 

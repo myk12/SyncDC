@@ -77,3 +77,21 @@ target_link_libraries(ml-fast-allreduce
     ns3::applications
     ns3::flow-monitor
 )
+
+set(OCS_ALLREDUCE_SOURCE
+    tests/test-ocs-ml-workload.cc
+    ${SOURCE_FILES}
+    ${HEADER_FILES})
+
+add_executable(ml-ocs-allreduce ${OCS_ALLREDUCE_SOURCE} )
+
+# Link required NS-3 libraries
+target_link_libraries(ml-ocs-allreduce
+    ns3::network
+    ns3::internet
+    ns3::point-to-point
+    ns3::csma
+    ns3::applications
+    ns3::flow-monitor
+)
+
