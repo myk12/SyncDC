@@ -31,10 +31,10 @@ AppOCSAllReduce::AppOCSAllReduce(uint32_t selfId,
       m_target(m_targetAddr, OCS_ALL_REDUCE_PORT)
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("- Start AppOCSAllReduce on server " << m_selfId);
-    NS_LOG_INFO("- Target address: " << m_targetAddr << " port " << OCS_ALL_REDUCE_PORT);
-    NS_LOG_INFO("- Bind address: " << m_bindAddr << " port " << OCS_ALL_REDUCE_PORT);
+    NS_LOG_INFO("------ Start AppOCSAllReduce on server " << m_selfId << " ----------");
     NS_LOG_INFO("- Listen address: " << m_listenAddr << " port " << OCS_ALL_REDUCE_PORT);
+    NS_LOG_INFO("- Bind address: " << m_bindAddr << " port " << OCS_ALL_REDUCE_PORT);
+    NS_LOG_INFO("- Target address: " << m_targetAddr << " port " << OCS_ALL_REDUCE_PORT);
 }
 
 AppOCSAllReduce::~AppOCSAllReduce()
@@ -104,6 +104,7 @@ void AppOCSAllReduce::RecvDataCallback(ns3::Ptr<ns3::Socket> socket)
         uint32_t pktSize = packet->GetSize();
 
         m_logFile << delay.GetNanoSeconds() << std::endl;
+        //m_logFile << sendTs.GetNanoSeconds() << "," << recvTs.GetNanoSeconds() << "," << delay.GetNanoSeconds() << "," << pktSize << std::endl; 
 
         // Receive data
         m_recvBytes += packet->GetSize();
@@ -111,8 +112,6 @@ void AppOCSAllReduce::RecvDataCallback(ns3::Ptr<ns3::Socket> socket)
         if (m_recvBytes >= m_constMsgSize)
         {
             NS_LOG_INFO("Server " << m_selfId << " finished receiving data from " << socket);
-            socket->Close();
-            break;
         }
     }
 }
@@ -142,6 +141,13 @@ void AppOCSAllReduce::StartOCSSendThread()
 void AppOCSAllReduce::SendData()
 {
     NS_LOG_FUNCTION(this);
+    if (m_sendBytes >= m_constMsgSize)
+    {
+        NS_LOG_INFO("Server " << m_selfId << " finished sending data to " << m_targetAddr << " port " << OCS_ALL_REDUCE_PORT);
+        m_sendSocket->Close();
+        return;
+    }
+
     // Create a packet
     ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>(OCS_ALL_REDUCE_PACKET_SIZE / 2);
     ns3::TimestampTag timestampTag(ns3::Simulator::Now());
@@ -159,7 +165,7 @@ void AppOCSAllReduce::SendData()
     }
     else
     {
-        ns3::Simulator::Schedule(ns3::MicroSeconds(1), &AppOCSAllReduce::SendData, this);
+        ns3::Simulator::Schedule(ns3::MicroSeconds(2), &AppOCSAllReduce::SendData, this);
     }
 }
 

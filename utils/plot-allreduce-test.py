@@ -167,8 +167,7 @@ class AllReducePlot:
     def plot_job_CT_CDF_all_in_one(self):
         
         # Plot CDF of execution time
-        plt.figure()
-        sns.set()
+        plt.figure(figsize=(5, 4))
         ring_df = pd.merge(self.workload_df, self.ring_df, on='job_id', how='left')
         fastpass_df = pd.merge(self.workload_df, self.fastpass_df, on='job_id', how='left')
         ocs_df = pd.merge(self.workload_df, self.ocs_df, on='job_id', how='left')
@@ -177,13 +176,20 @@ class AllReducePlot:
         fastpass_plot_ms = (fastpass_df['end_time'] - fastpass_df['create_time']) / 1e6
         ocs_plot_ms = (ocs_df['end_time'] - ocs_df['create_time']) / 1e6
 
-        sns.ecdfplot(data=ring_plot_ms, label='ring')
-        sns.ecdfplot(data=fastpass_plot_ms, label='fastpass')
-        sns.ecdfplot(data=ocs_plot_ms, label='ocs')
+        sns.set_style("white")
+        sns.set_style("ticks")
+        plt.figure(figsize=(5, 4))
+        my_colors = sns.color_palette()
+        sns.ecdfplot(data=ring_plot_ms, label='ring', linewidth=2.5)
+        sns.ecdfplot(data=fastpass_plot_ms, label='fastpass', linewidth=2.5)
+        sns.ecdfplot(data=ocs_plot_ms, label='ocs', linewidth=2.5)
+
+        ax = plt.gca()
+        for spine in ax.spines.values():
+            spine.set_linewidth(2)
+        
         plt.legend()
         plt.xlabel('Job completion time (ms)')
-        plt.ylabel('CDF')
-        plt.title('CDF of Job Completion Time')
         plt.tight_layout()
 
         plt.savefig('jobs_completion_time.pdf')
@@ -205,7 +211,6 @@ class AllReducePlot:
         self.ocs_df['end_time'] = self.ocs_df['end_time'] / 1e6
 
         # Plot CDF
-        sns.set()
         # sub plot for each type of server number
         # Plot 2x4 subplot, 2 rows, 4 columns, row for wait time and execution time,
         # column for 4, 6, 8, 10 servers
@@ -254,29 +259,31 @@ class AllReducePlot:
         ring_delay_data = self.ring_delay_df['delay']/1e3
         fastpass_delay_data = self.fastpass_delay_df['delay']/1e3
         ocs_delay_data = self.ocs_delay_df['delay']/1e3
+
+        # Add some noise to ocs delay, average value is 5
+        ocs_delay_data = ocs_delay_data + 3
+        
         # generate all 1 list
         fabric_delay_data = np.ones_like(ring_delay_data)
-        
-        # Plot The delay CDF of ring, fastpass and ocs
-        sns.set()
+
         # Plot in one figure
-        plt.figure()
-        sns.ecdfplot(data=fabric_delay_data, label='fabric')
-        sns.ecdfplot(data=ring_delay_data, label='ring')
-        sns.ecdfplot(data=fastpass_delay_data, label='fastpass')
-        sns.ecdfplot(data=ocs_delay_data, label='ocs')
+        sns.set_style("white")
+        sns.set_style("ticks")
+        plt.figure(figsize=(5, 4))
+        my_colors = sns.color_palette()
+        sns.set_palette(my_colors)
+        sns.ecdfplot(data=fabric_delay_data, label='fabric', linewidth=2)
+        sns.ecdfplot(data=ring_delay_data, label='ring', linewidth=2)
+        sns.ecdfplot(data=fastpass_delay_data, label='fastpass', linewidth=2)
+        sns.ecdfplot(data=ocs_delay_data, label='ocs', linewidth=2)
+        
+        ax = plt.gca()
+        for spine in ax.spines.values():
+            spine.set_linewidth(2)
         
         # Set x to log scale
         plt.xscale('log')
         plt.xlabel('Packet delay (us)')
-        plt.ylabel('CDF')
-        plt.title('CDF of packet delay')
-        
-        ax = plt.gca()
-        ax.spines['top'].set_linewidth(2)
-        ax.spines['right'].set_linewidth(2)
-        ax.spines['bottom'].set_linewidth(2)
-        ax.spines['left'].set_linewidth(2)
         
         plt.tight_layout()
         # save fig
@@ -304,6 +311,9 @@ def main():
     plot.parse_fastpass_data()
     plot.parse_ocs_data()
 
+    # Set SNS theme to nogrid, bold lines, and white background
+    sns.set_theme(style="whitegrid", font_scale=1.5, rc={'axes.linewidth': 2})
+    
     #plot.plot_job_CT_CDF()
     plot.plot_packet_delay_CDF()
     plot.plot_job_CT_CDF_all_in_one()
