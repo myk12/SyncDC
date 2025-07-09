@@ -1,6 +1,10 @@
 .vscode/
 build
 result
+*.gz
 *.png
 *.pdf
 *.DS_Store
+*.delay
+*.dat
+*.log

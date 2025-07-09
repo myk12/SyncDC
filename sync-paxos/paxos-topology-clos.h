@@ -18,11 +18,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-
-#include <yaml-cpp/yaml.h>
-
 // This is a simple topology for a Clos network
-
 class SyncDCTopologySpineLeaf {
 public:
     SyncDCTopologySpineLeaf(uint32_t numSpines,
@@ -47,8 +43,6 @@ public:
     void SetPaxosServerAppStartStop(ns3::Time start, ns3::Time end);
     void SetPaxosClientAppStartStop(ns3::Time start, ns3::Time end);
 
-    void ExportTopologyToYaml(const std::string& filename);
-
 private:
     ns3::NodeContainer m_spineNodes;
     ns3::NodeContainer m_leafNodes;
@@ -66,6 +60,9 @@ private:
     ns3::ApplicationContainer m_paxosAppClientContainer;
 
     PaxosConfig m_paxosConfig;
+    ns3::Ptr<ns3::UniformRandomVariable> m_randomVariable;
+
+    std::string m_linkDelay;
 };
 
 #endif

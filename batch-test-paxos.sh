@@ -20,22 +20,23 @@ fi
 ################################################    
 # Change parameters and run the program
 # Message Delay Bound Array
-delay_bound_arr=(50000 5000 500 50 5)
+delay_bound_arr=(1000 100 10 1)
+#delay_bound_arr=(100 10)
 # Sync Error Parameter Array
-sync_error_arr=(50000 5000 500 50 5)
+sync_error_arr=(10000 1000 100 10 1)
 
-mkdir -p result/Sync
+mkdir -p result/sync
 
 for i in "${delay_bound_arr[@]}"
 do
     for j in "${sync_error_arr[@]}"
     do
-        mkdir -p result/Sync/Delay_${i}us/Sync_${j}ns
+        mkdir -p result/sync/delay_${i}us/sync_${j}ns
        
         ./build/bin/sync-paxos --sync=1 --clockSyncError=${j}ns --boundedMessageDelay=${i}us
 
-       # move the result to the result folder
-        mv *.dat result/Sync/Delay_${i}us/Sync_${j}ns/
+        # move the result to the result folder
+        mv *.dat result/sync/delay_${i}us/sync_${j}ns/
     done
 done
 
@@ -45,16 +46,16 @@ done
 
 # Change parameters and run the program
 # Message Delay
-delay_arr=(50000 5000 500 50 5)
+delay_arr=(1000 100 10 1)
 
-mkdir -p result/Async
+mkdir -p result/async
 
 for i in "${delay_arr[@]}"
 do
-    mkdir -p result/Async/Delay_${i}us
+    mkdir -p result/async/delay_${i}us
     
     ./build/bin/sync-paxos --sync=0 --linkDelay=${i}us 
 
     # move the result to the result folder
-    mv *.dat result/Async/Delay_${i}us/
+    mv *.dat result/async/delay_${i}us/
 done

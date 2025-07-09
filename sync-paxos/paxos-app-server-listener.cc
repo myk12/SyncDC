@@ -47,6 +47,7 @@ void PaxosAppServer::ReceiveRequest(ns3::Ptr<ns3::Socket> socket)
 
     while ((packet = socket->RecvFrom(from)))
     {
+        // record the total number of received packets
         // If run in async mode, and I am not the leader, ignore the request
         if (s_async && m_nodeId != s_leader)
         {
@@ -59,8 +60,10 @@ void PaxosAppServer::ReceiveRequest(ns3::Ptr<ns3::Socket> socket)
             RequestFrame requestFrame;
             packet->RemoveHeader(requestFrame);
 
+            // FIXME: record the total number of received packets
+            //m_totalRecvPackets++;
             // Create Proposal from Request
-            ns3::Simulator::Schedule(ns3::NanoSeconds(10), &PaxosAppServer::CreateProposalFromRequest, this, requestFrame);
+            ns3::Simulator::Schedule(ns3::NanoSeconds(1), &PaxosAppServer::CreateProposalFromRequest, this, requestFrame);
         }
     }
 }
@@ -68,7 +71,7 @@ void PaxosAppServer::ReceiveRequest(ns3::Ptr<ns3::Socket> socket)
 void PaxosAppServer::CreateProposalFromRequest(RequestFrame requestFrame)
 {
     // Set the queue length limit to 1000
-    if (m_waitingProposals.size() > 1000)
+    if (m_waitingProposals.size() > 10000)
     {
         return;
     }

@@ -39,8 +39,6 @@ target_link_libraries(sync-paxos
     ns3::csma
     ns3::applications
     ns3::flow-monitor
-    # YAML C++ library
-    yaml-cpp
 )
 
 # Include directories

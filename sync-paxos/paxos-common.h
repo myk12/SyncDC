@@ -52,7 +52,7 @@ typedef struct PaxosConfig {
     std::string boundedMessageDelay = "10ms"; // bounded message delay
 
     // Only for asynchronous mode
-    std::string linkDelay = "10ms";       // link delay
+    std::string linkDelay = "1ms";       // link delay
     double packetLossRate = 0.0;          // packet loss rate
 
     // 3. Node Failure Rate

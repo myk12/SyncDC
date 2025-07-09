@@ -16,6 +16,8 @@ SyncDCTopologySpineLeaf::SyncDCTopologySpineLeaf(uint32_t numSpines,
 
     m_paxosConfig = paxosConfig;
 
+    m_linkDelay = delayHost2Leaf;
+
     // Create spine nodes
     m_spineNodes.Create(numSpines);
 
@@ -181,6 +183,7 @@ SyncDCTopologySpineLeaf::InitPaxosServerCluster(std::vector<std::pair<uint32_t, 
         paxosAppServer->SetClockSyncError(ns3::Time(m_paxosConfig.clockSyncError));
         paxosAppServer->SetBoundedMessageDelay(ns3::Time(m_paxosConfig.boundedMessageDelay));
         paxosAppServer->SetNodeFailureRate(m_paxosConfig.nodeFailureRate);
+        paxosAppServer->SetAsynLinkDelayus(m_linkDelay);
 
         m_paxosAppServerContainer.Add(paxosAppServer);
         node->AddApplication(paxosAppServer);
@@ -234,102 +237,5 @@ void SyncDCTopologySpineLeaf::SetPaxosClientAppStartStop(ns3::Time start, ns3::T
     {
         (*it)->SetStartTime(start);
         (*it)->SetStopTime(end);
-    }
-}
-
-// Your existing methods (GetSpineAddress, GetLeafAddress, GetHostAddress, InitPaxosServerCluster, InitPaxosClientCluster, SetPaxosServerAppStartStop, SetPaxosClientAppStartStop)...
-
-void SyncDCTopologySpineLeaf::ExportTopologyToYaml(const std::string& filename)
-{
-    NS_LOG_INFO("Exporting topology to YAML file: " << filename);
-
-    try {
-        YAML::Node topology;
-
-        // Add metadata
-        topology["metadata"]["num_spines"] = m_spineNodes.GetN();
-        topology["metadata"]["num_leaves"] = m_leafNodes.GetN();
-        topology["metadata"]["num_hosts_per_leaf"] = m_hostNodes.empty() ? 0 : m_hostNodes[0].GetN();
-
-        // Add spine nodes
-        for (uint32_t i = 0; i < m_spineNodes.GetN(); ++i) {
-            YAML::Node spine;
-            spine["id"] = i;
-            spine["node_id"] = m_spineNodes.Get(i)->GetId();
-            // Collect all interface addresses for this spine
-            YAML::Node interfaces;
-            for (uint32_t j = 0; j < m_leafNodes.GetN(); ++j) {
-                YAML::Node iface;
-                iface["leaf_id"] = j;
-                iface["ip_address"] = Ipv4int2string(m_spineLeafInterfaceMatrix[i][j].GetAddress(0, 0).Get());
-                interfaces.push_back(iface);
-            }
-            spine["interfaces"] = interfaces;
-            topology["spines"].push_back(spine);
-        }
-
-        // Add leaf nodes
-        for (uint32_t i = 0; i < m_leafNodes.GetN(); ++i) {
-            YAML::Node leaf;
-            leaf["id"] = i;
-            leaf["node_id"] = m_leafNodes.Get(i)->GetId();
-            // Collect spine interfaces
-            YAML::Node spine_interfaces;
-            for (uint32_t j = 0; j < m_spineNodes.GetN(); ++j) {
-                YAML::Node iface;
-                iface["spine_id"] = j;
-                iface["ip_address"] = Ipv4int2string(m_spineLeafInterfaceMatrix[j][i].GetAddress(1, 0).Get());
-                spine_interfaces.push_back(iface);
-            }
-            leaf["spine_interfaces"] = spine_interfaces;
-            // Collect host interfaces
-            YAML::Node host_interfaces;
-            for (uint32_t k = 0; k < m_hostNodes[i].GetN(); ++k) {
-                YAML::Node iface;
-                iface["host_id"] = k;
-                iface["ip_address"] = Ipv4int2string(m_hostLeafInterfaceMatrix[i][k].GetAddress(0, 0).Get());
-                host_interfaces.push_back(iface);
-            }
-            leaf["host_interfaces"] = host_interfaces;
-            topology["leaves"].push_back(leaf);
-        }
-
-        // Add host nodes
-        for (uint32_t i = 0; i < m_leafNodes.GetN(); ++i) {
-            for (uint32_t j = 0; j < m_hostNodes[i].GetN(); ++j) {
-                YAML::Node host;
-                host["id"] = j;
-                host["leaf_id"] = i;
-                host["node_id"] = m_hostNodes[i].Get(j)->GetId();
-                YAML::Node iface;
-                iface["ip_address"] = Ipv4int2string(m_hostLeafInterfaceMatrix[i][j].GetAddress(1, 0).Get());
-                host["interface"] = iface;
-                topology["hosts"].push_back(host);
-            }
-        }
-
-        // Add server info
-        YAML::Node servers;
-        for (auto it = m_serverInfoList.begin(); it != m_serverInfoList.end(); ++it) {
-            YAML::Node server;
-            server["id"] = it->serverId;
-            server["ip_address"] = Ipv4int2string(it->address.Get());
-            server["port"] = it->paxosPort;
-            servers.push_back(server);
-        }
-        topology["servers"] = servers;
-
-        // Write to file
-        std::ofstream ofs(filename);
-        if (!ofs.is_open()) {
-            NS_LOG_ERROR("Failed to open file for writing: " << filename);
-            return;
-        }
-        ofs << topology;
-        ofs.close();
-        NS_LOG_INFO("Successfully exported topology to: " << filename);
-    }
-    catch (const std::exception& e) {
-        NS_LOG_ERROR("Error exporting topology to YAML: " << e.what());
     }
 }

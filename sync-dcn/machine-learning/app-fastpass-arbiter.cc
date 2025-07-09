@@ -187,7 +187,7 @@ FastPassArbiter::AllocateIntraLeafResource(uint32_t dstLeaf, uint64_t dataSize)
 
     // Update the resource pool
     //resourcePool[leastId] += DataSize2TimeSlot(dataSize);
-    resourcePool[leastId] += ns3::MicroSeconds(160);
+    resourcePool[leastId] += ns3::MicroSeconds(100);
     NS_LOG_INFO("Allocated intra-leaf resource " << allocatedTime << " for " << dataSize << " bytes");
     return allocatedTime;
 }
@@ -225,7 +225,7 @@ FastPassArbiter::AllocateInterLeafResource(uint32_t srcLeafId, uint32_t dstLeaf,
 
     // Update the resource pool
     //ns3::Time allocatedSlot = DataSize2TimeSlot(dataSize);
-    ns3::Time allocatedSlot = ns3::MicroSeconds(320);
+    ns3::Time allocatedSlot = ns3::MicroSeconds(200);
     srcLeftResourcePool[srcLeastId] = allocatedTime + allocatedSlot;
     dstLeftResourcePool[dstLeastId] = allocatedTime + allocatedSlot;
 

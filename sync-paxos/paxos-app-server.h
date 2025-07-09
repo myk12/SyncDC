@@ -7,6 +7,8 @@
 #include "ns3/internet-module.h"
 #include "ns3/udp-socket-factory.h"
 #include "ns3/socket.h"
+// add random variable
+#include "ns3/random-variable-stream.h"
 
 #include "paxos-common.h"
 #include "paxos-frame.h"
@@ -88,6 +90,7 @@ public:
     void SetClockSyncError(ns3::Time clockSyncError);
     void SetBoundedMessageDelay(ns3::Time boundedMessageDelay);
     void SetNodeFailureRate(double nodeFailureRate);
+    void SetAsynLinkDelayus(std::string linkDelay);
 
 private:
     uint32_t m_nodeId;  // Node ID of this node
@@ -126,6 +129,12 @@ private:
     std::shared_ptr<Proposal> m_currentProposal; // Current proposal being proposed
     uint32_t m_numDecidedAck; // Number of acceptors that have decided on the current proposal
     void proposeTimerExpired(uint64_t proposalId); // Check if proposer do not get enough acceptors to decide on the proposal
+    std::string m_asynLinkDelay;
+    ns3::Ptr<ns3::UniformRandomVariable> m_uniformRandomVariable;
+
+    // Traffic volume
+    uint64_t m_totalSendPackets;
+    uint64_t m_totalRecvPackets;
 };
 
 #endif // PAXOS_APP_HH

@@ -290,6 +290,48 @@ class AllReducePlot:
         plt.legend()
         plt.savefig('packet_delay.pdf')
         plt.close()
+    
+    def plot_allreduce_test(self):
+        """
+        """
+        # make sure use same color
+        colors = sns.color_palette('hls', n_colors=4)
+        sns.set_style("whitegrid")
+        # Subplot, left-job completion time, right-pakcet delay
+        fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+        # Plot job completion time
+        ring_df = pd.merge(self.workload_df, self.ring_df, on='job_id', how='left')
+        fastpass_df = pd.merge(self.workload_df, self.fastpass_df, on='job_id', how='left')
+        ocs_df = pd.merge(self.workload_df, self.ocs_df, on='job_id', how='left')
+        # Plot total time CDF end_time -  - create_time, ns to ms
+        ring_plot_ms = (ring_df['end_time'] - ring_df['create_time']) / 1e6
+        fastpass_plot_ms = (fastpass_df['end_time'] - fastpass_df['create_time']) / 1e6
+        ocs_plot_ms = (ocs_df['end_time'] - ocs_df['create_time']) / 1e6
+        
+        sns.ecdfplot(data=ring_plot_ms, label='ring', linewidth=2.5, ax=axes[0], color=colors[0])
+        sns.ecdfplot(data=fastpass_plot_ms, label='fastpass', linewidth=2.5, ax=axes[0], color=colors[1])
+        sns.ecdfplot(ocs_plot_ms, label='ocs', linewidth=2.5, ax=axes[0], color=colors[2])
+        axes[0].set_ylabel('CDF')
+        axes[0].set_xlabel('Allreduce Completion Time (ms)')
+        
+        # Subplot for packet delay
+        ring_delay_data = self.ring_delay_df['delay']
+        fastpass_delay_data = self.fastpass_delay_df['delay']
+        ocs_delay_data = self.ocs_delay_df['delay']
+        sns.ecdfplot(data=np.ones_like(ring_delay_data)*1000, label='fabric', linewidth=2.5, ax=axes[1], color=colors[3])
+        sns.ecdfplot(data=ring_delay_data, label='ring', linewidth=2.5, ax=axes[1], color=colors[0])
+        sns.ecdfplot(data=fastpass_delay_data, label='fastpass', linewidth=2.5, ax=axes[1], color=colors[1])
+        sns.ecdfplot(ocs_delay_data, label='ocs', linewidth=2.5, ax=axes[1], color=colors[2])
+        #set x axis to log scale
+        axes[1].set_xscale('log')
+        axes[1].set_xlabel('Packet Delay (ns)')
+        axes[1].set_ylabel('CDF')
+
+        # save fig
+        plt.tight_layout()
+        plt.legend()
+        plt.savefig('allreduce_test.pdf')
+        
 
 def main():   
     # Parse command-line arguments
@@ -315,8 +357,9 @@ def main():
     sns.set_theme(style="whitegrid", font_scale=1.5, rc={'axes.linewidth': 2})
     
     #plot.plot_job_CT_CDF()
-    plot.plot_packet_delay_CDF()
-    plot.plot_job_CT_CDF_all_in_one()
+    #plot.plot_packet_delay_CDF()
+    #plot.plot_job_CT_CDF_all_in_one()
+    plot.plot_allreduce_test()
 
 if __name__ == '__main__':
     main()

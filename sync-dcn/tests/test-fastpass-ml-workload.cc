@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     config.numHostsPerLeaf = 8;
     config.linkBandwidth = "100Gbps";
     config.linkDelay = "1us";
-    config.msgSize = 2 * 1024 * 1024;
+    config.msgSize = 1 * 1024 * 1024;
 
     ns3::CommandLine cmd;
     cmd.AddValue("logDir", "Log directory", config.logDir);

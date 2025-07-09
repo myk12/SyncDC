@@ -72,19 +72,30 @@ class PaxosPlot:
         # Y-axis: number of operations per second
         plt.figure()
         plt.yscale('log')
-        sns.lineplot(data=self.sync_result_df, markers=True, markersize=10, linewidth=2.5)
+        sns.set_style('whitegrid')
+        sns.color_palette("hls", len(self.sync_result_df.columns))
+        sns.lineplot(data=self.sync_result_df, markers=True, markersize=10, linewidth=2.5, dashes=False)
 
         plt.xlabel("Clock Sync. Error", fontsize=14)
-        plt.ylabel("Operations per second (log scale)", fontsize=14)
+        plt.ylabel("Operations per second", fontsize=14)
         plt.xticks(rotation=45, ha='right', fontsize=12)
         plt.yticks(fontsize=12)
-        #plt.grid(True, color='gray', linestyle='--', linewidth=0.5)
+        plt.grid(True, which='both', axis='both', linestyle='--', linewidth=0.5)
         ax = plt.gca()
         ax.spines['top'].set_linewidth(2) 
         ax.spines['right'].set_linewidth(2)
         ax.spines['bottom'].set_linewidth(2)
         ax.spines['left'].set_linewidth(2)
-        plt.legend(title="Bound Delay", loc='best', fontsize=12)
+        # make the legend outside the plot
+        # https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
+        plt.legend(
+            title='Delay Bound',
+            bbox_to_anchor=(0.5, 1.1),  # Position outside, above the plot
+            loc='center',
+            bbox_transform=ax.transAxes,
+            ncol=5,  # Spread items in one row
+            borderaxespad=0.0  # Minimize padding between legend and plot
+        )
         plt.gca().yaxis.set_major_formatter(FuncFormatter(format_large_numbers))
 
         plt.tight_layout()
@@ -99,8 +110,7 @@ class PaxosPlot:
         # Y-axis: number of operations per second
         plt.figure()
         plt.yscale('log')
-        sns.barplot(data=self.async_result_df, color='white',
-                    width=0.5, edgecolor='black', hatch='x')
+        sns.barplot(data=self.async_result_df)
         
         plt.xlabel("One way delay", fontsize=14)
         plt.ylabel("Operations per second (log scale)", fontsize=14)
@@ -133,7 +143,7 @@ class PaxosPlot:
             except ValueError:
                 print(f"Warning: Column {col_name} not found in async_result_df columns")
         
-        plt.legend(handles=points, loc='best', fontsize=12, title="Bound Delay (50ns Sync Err.)")
+        plt.legend(handles=points, title="Delay Bound")
         
         print(sync_results)
 
@@ -147,6 +157,7 @@ class PaxosPlot:
         # Parse the sync test results
         print(f"Reading sync test results from '{self.sync_res_dir}' directory...")        
         results_dict = {}
+        packets_dict = {}
         # list dirs in this directory
         sync_dirs = os.listdir(self.sync_res_dir)
         for delay_dir in sync_dirs:
@@ -154,29 +165,48 @@ class PaxosPlot:
             # Dir name format: Delay_50us
             delay_bound = int(re.search(r"Delay_(\d+)us", delay_dir).group(1))
             results_dict[f"{delay_bound}us"] = {}
+            packets_dict[f"{delay_bound}us"] = {}
 
             for sync_dir in os.listdir(os.path.join(self.sync_res_dir, delay_dir)):
                 # Parse the sync error. Dir name format: Sync_100ns
                 sync_err = int(re.search(r"Sync_(\d+)ns", sync_dir).group(1))
                 current_dir = os.path.join(self.sync_res_dir, delay_dir, sync_dir)
+                print(sync_err, current_dir)
                 
-                # Parse the number of operations. Get the number of lines of the first file in the directory
-                num_lines = sum(1 for line in open(os.path.join(current_dir, os.listdir(current_dir)[0]), 'r'))
-            
+                # Parse the number of operations. Get the number of lines of the first file in the directory)
+                file = os.listdir(current_dir)[0]
+                # get file lines
+                num_lines = len(open(os.path.join(current_dir, file), 'r').readlines())
+
                 # Calculate the number of operations per second
                 opps = num_lines / self.simulation_seconds
                 results_dict[f"{delay_bound}us"][f"{sync_err}ns"] = opps
+                
+                # Parse the packets number of each server
+                server_packets = {}
+                for file in os.listdir(current_dir):
+                    # parse server ID from filename: server-0-decision.log
+                    server_id = int(file.split('-')[1])
+                    # parse packets number from file: last two lines
+                    lines = open(os.path.join(current_dir, file), 'r').readlines()
+                    send_packets = int(lines[-2].split(' ')[-1])
+                    recv_packets = int(lines[-1].split(' ')[-1])
+                    server_packets[server_id] = (send_packets, recv_packets)
+                packets_dict[f"{delay_bound}us"][f"{sync_err}ns"] = server_packets
         
         # Transform the dictionary to a Pandas DataFrame
         self.sync_result_df = pd.DataFrame.from_dict(results_dict).sort_index(axis=0).sort_index(axis=1)
-        self.sync_result_df = self.sync_result_df.rename(columns=to_readable_time, index=to_readable_time)
         print(f"Sync test results:\n{self.sync_result_df}")
         print(self.sync_result_df.describe())
+
+        self.sync_packets_dict = packets_dict
+        print(self.sync_packets_dict)
     
     def parse_async_result_dir(self):
         # Parse the async test results
         print(f"Reading async test results from '{self.async_res_dir}' directory...")        
         results_dict = {}
+        packets_dict = {}
         # list dirs in this directory
         async_dirs = os.listdir(self.async_res_dir)
         for delay_dir in async_dirs:
@@ -189,6 +219,19 @@ class PaxosPlot:
             
             # Calculate the number of operations per second
             opps = num_lines / self.simulation_seconds
+            
+            packets_dict[f"{e2e_delay}us"] = {}
+
+            for file in os.listdir(current_dir):
+                # parse server ID from filename: server-0-decision.log
+                server_id = int(file.split('-')[1])
+                # parse packets number from file: last two lines
+                lines = open(os.path.join(current_dir, file), 'r').readlines()
+                send_packets = int(lines[-2].split(' ')[-1])
+                recv_packets = int(lines[-1].split(' ')[-1])
+
+                packets_dict[f"{e2e_delay}us"][server_id] = (send_packets, recv_packets)
+                
 
             results_dict[f"{e2e_delay}us"] = opps
         
@@ -196,8 +239,10 @@ class PaxosPlot:
             
         # Transform the dictionary to a Pandas DataFrame
         self.async_result_df = pd.DataFrame(results_dict, index=[0]).sort_index(axis=1)
-        self.async_result_df = self.async_result_df.rename(columns=to_readable_time)
         print(f"Async test results:\n{self.async_result_df}")
+        
+        self.async_packets_dict = packets_dict
+        print(self.async_packets_dict)
     
     def parse_sync_flow_monitor_XML(self):
         # Parse the XML file
@@ -338,6 +383,87 @@ class PaxosPlot:
         pdf_path = os.path.join(self.results_root_dir, "rack-traffic-volume.pdf")
         plt.savefig(pdf_path, dpi=300, format='pdf', bbox_inches='tight')
     
+    def plot_opps_comparison(self):
+        # Plot the results to a group bar chart
+        # X-axis: delay bound
+        # Y-axis: number of operations per second
+        # subplot 1x2
+
+        # Melt DataFrames
+        sync_melted = self.sync_result_df.reset_index().melt(id_vars='index', var_name='delay bound', value_name='operation per second')
+        sync_melted.rename(columns={'index': 'clock_sync_error'}, inplace=True)
+        sync_melted['type'] = 'Sync'
+
+        async_melted = self.async_result_df.reset_index().melt(id_vars='index', var_name='one way delay', value_name='operation per second')
+        async_melted.rename(columns={'index': 'clock_sync_error'}, inplace=True)
+        async_melted['clock_sync_error'] = 'Async'  # Assign single label for async
+        async_melted['type'] = 'Async'
+
+        # Combine DataFrames
+        df_combined = pd.concat([sync_melted, async_melted], ignore_index=True)
+
+        # Set Seaborn style
+        sns.set_style("whitegrid")
+
+        # Create figure with two subplots, sharing y-axis
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 3), sharey=True, gridspec_kw={'width_ratios':[0.73,0.27]})
+
+        # Plot Sync bar chart (grouped)
+        sns.set_palette("hls", 3)
+        sns.barplot(
+            data=df_combined[df_combined['type'] == 'Sync'],
+            x='delay bound',
+            y='operation per second',
+            hue='clock_sync_error',
+            ax=ax1
+        )
+
+        ax1.set_title('Sync. Paxos')
+        ax1.set_xlabel('Delay Bound')
+        ax1.set_ylabel('Operations per second')
+        ax1.set_yscale('log')
+        ax1.grid(True, which='both', axis='both', linestyle='--', linewidth=0.5)
+        ax1.legend(title='Clock Sync Error')
+
+        # Plot Async bar chart (single bars)
+        sns.barplot(
+            data=df_combined[df_combined['type'] == 'Async'],
+            x='one way delay',
+            y='operation per second',
+            hue='clock_sync_error',
+            ax=ax2
+        )
+        ax2.set_title('Async. Paxos')
+        ax2.set_xlabel('One Way Delay')
+        ax2.set_ylabel('')
+        ax2.grid(True, which='both', axis='both', linestyle='--', linewidth=0.5)
+        ax2.get_legend().remove()
+
+        # Adjust layout
+        fig.subplots_adjust(wspace=0.01, top=0.85)
+        plt.savefig(os.path.join(self.results_root_dir, "opps-comparison.pdf"), dpi=300, format='pdf', bbox_inches='tight')
+
+    def plot_traffic_volume(self):
+        # Calculate sync packets
+        sync_server_volume = {}
+        for delay_bound, sync_err_dict in self.sync_packets_dict.items():
+            for sync_err, server_packets in sync_err_dict.items():
+                num_ops = self.sync_result_df.loc[sync_err][delay_bound]
+                server_MBkops = {}
+                for server_id, packets in server_packets.items():
+                    server_MBkops[server_id] = sum(packets) * 512 / num_ops * 1000 / 1024 / 1024 # Bytes/kops
+                print(server_MBkops)
+        
+        async_servers_volume = {}
+        for delay_bound, server_packets in self.async_packets_dict.items():
+            for server_id, packets in server_packets.items():
+                num_ops = self.async_result_df.loc[0][delay_bound]
+                server_MBkops = {}
+                for server_id, packets in server_packets.items():
+                    server_MBkops[server_id] = sum(packets) * 512 / num_ops * 1000 / 1024 / 1024 # Bytes/kops
+                print(server_MBkops)
+    
+
 if __name__ == "__main__":
     # Set up logging
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -355,9 +481,11 @@ if __name__ == "__main__":
     plot = PaxosPlot(args.results_dir, args.runtime, args.flow_monitor_xml, args.system_topology)
     plot.parse_sync_result_dir()
     plot.parse_async_result_dir()
-    plot.parse_sync_flow_monitor_XML()
-    plot.parse_async_flow_monitor_XML()
-    plot.parse_system_topology_yaml()
-    plot.plot_sync_opps()
-    plot.plot_async_opps()
-    plot.plot_rack_traffic_volume()
+    #plot.parse_sync_flow_monitor_XML()
+    #plot.parse_async_flow_monitor_XML()
+    #plot.parse_system_topology_yaml()
+    #plot.plot_sync_opps()
+    #plot.plot_async_opps()
+    #plot.plot_rack_traffic_volume()
+    plot.plot_opps_comparison()
+    plot.plot_traffic_volume()

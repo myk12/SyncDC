@@ -92,9 +92,8 @@ PaxosAppServer::DoAsyncPropose()
 
 uint64_t PaxosAppServer::DoPropose()
 {
-    if (m_waitingProposals.size() == 0)
+    if (m_waitingProposals.empty())
     {
-        // There is no proposal in the queue
         NS_LOG_INFO("PaxosAppServer " << m_serverId << " has no proposal in the queue.");
         return 0;
     }
@@ -148,6 +147,7 @@ uint64_t PaxosAppServer::DoPropose()
         if (m_sendSocket)
         {
             m_sendSocket->SendTo(packet, 0, to);
+            m_totalSendPackets++;
         }
         else
         {

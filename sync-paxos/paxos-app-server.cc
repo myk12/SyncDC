@@ -63,6 +63,14 @@ void PaxosAppServer::StartApplication(void)
     NS_LOG_INFO("Starting PaxosAppServer " << m_nodeId << " async mode : " << s_async);
     NS_LOG_INFO("Leader: " << s_leader << " Propose timeout: " << s_proposeTimeout.GetMilliSeconds() << "ms");
 
+    // Create uniform random variable
+    m_uniformRandomVariable = ns3::CreateObject<ns3::UniformRandomVariable>();
+    m_uniformRandomVariable->SetAttribute("Min", ns3::DoubleValue(0.0));
+    m_uniformRandomVariable->SetAttribute("Max", ns3::DoubleValue(4.0));
+
+    m_totalSendPackets = 0;
+    m_totalRecvPackets = 0;
+
     // Calculate the proposal period, only used for synchronous manner
     m_proposePeriod = (2 * m_clockSyncError + m_boundedMessageDelay) * m_numNodes;
     NS_LOG_INFO("Clock sync error: " << m_clockSyncError.GetNanoSeconds() << "ns, Bounded message delay: " << m_boundedMessageDelay.GetNanoSeconds() << "ns");
@@ -83,6 +91,7 @@ void PaxosAppServer::StartApplication(void)
 
 void PaxosAppServer::StopApplication(void)
 {
+
     // Log the proposal to file
     // Write the proposal to file
     // Log file path : LOG_DIR + "server-" + m_nodeId + "-decision-log.dat"
@@ -98,6 +107,10 @@ void PaxosAppServer::StopApplication(void)
     std::ofstream logFile(logFilePath, std::ios::out);
     logFile << "index,proposalId,proposerId,value,decidedTime\n";
 
+    // Log the proposal to file
+    logFile << "Total Send Packets: " << m_totalSendPackets << std::endl;
+    logFile << "Total Recv Packets: " << m_totalRecvPackets << std::endl;
+
     uint64_t length = m_decidedProposalQueue.size();
     for (uint64_t i = 0; i < length; i++)
     {
@@ -105,7 +118,7 @@ void PaxosAppServer::StopApplication(void)
         logFile << i << "," << proposal->getProposalId() << "," << proposal->getNodeId() << "," << proposal->getValue() << "," << proposal->getDecisionTime() << std::endl;
         m_decidedProposalQueue.pop();
     }
-
+    
     logFile.close();
 }
 
@@ -171,6 +184,7 @@ void PaxosAppServer::ReceiveMessage(ns3::Ptr<ns3::Socket> socket)
     // Receive the packet
     while ((packet = socket->RecvFrom(from)))
     {
+        m_totalRecvPackets++;
         NS_LOG_INFO("PaxosAppServer " << m_nodeId << " received a packet of size " << packet->GetSize()
                                       << " from " << ns3::InetSocketAddress::ConvertFrom(from).GetIpv4());
 
@@ -252,6 +266,7 @@ void PaxosAppServer::SendAcceptMessage(PaxosFrame frame)
 
     ns3::InetSocketAddress to(address, port);
     m_sendSocket->SendTo(packet, 0, to);
+    m_totalSendPackets++;
 }
 
 void PaxosAppServer::DoReceivedAcceptMessage(PaxosFrame frame)
@@ -331,6 +346,7 @@ void PaxosAppServer::SendDecisionMessage(PaxosFrame frame)
         ns3::InetSocketAddress to(address, port);
 
         m_sendSocket->SendTo(packet, 0, to);
+        m_totalSendPackets++;
     }
 }
 
@@ -370,6 +386,7 @@ void PaxosAppServer::DoReceivedDecisionMessage(PaxosFrame frame)
         ns3::InetSocketAddress to(address, port);
 
         m_sendSocket->SendTo(packet, 0, to);
+        m_totalSendPackets++;
     }
 
     m_decidedProposalQueue.push(proposal);
@@ -379,6 +396,9 @@ void PaxosAppServer::DoReceivedDecisionMessage(PaxosFrame frame)
 void PaxosAppServer::DoReceivedDecisionAckMessage(PaxosFrame frame)
 {
     NS_LOG_INFO("PaxosAppServer " << m_nodeId << " received decision ack message for Proposal ID " << frame.GetProposalId());
+
+    
+    // Schedule Next Proposal
 
     // Check the current mode
     if (s_async)
@@ -400,6 +420,7 @@ void PaxosAppServer::DoReceivedDecisionAckMessage(PaxosFrame frame)
         std::shared_ptr<Proposal> proposal = it->second;
         proposal->incrementNumDecisionAck();
 
+        /*
         // If the proposal has enough decision acks, send a decision message
         if (proposal->getNumDecisionAck() > (m_numNodes / 2) && proposal->getDecisionAckTime().IsZero())
         {
@@ -413,7 +434,29 @@ void PaxosAppServer::DoReceivedDecisionAckMessage(PaxosFrame frame)
             m_proposals.erase(proposalId);
 
             // And now we can do a new proposal
-            DoAsyncPropose();
+            // wait for a random time in order to simulate
+            // the case that the server is busy and cannot
+            // do a new proposal immediately
+            // Uniform random variable of asyncLinkDelayus
+            uint32_t factor = m_uniformRandomVariable->GetInteger(); // 1 to 10
+            ns3::Time nextSchedule = ns3::NanoSeconds(factor * ns3::Time(m_asynLinkDelay).GetNanoSeconds());
+            NS_LOG_INFO("PaxosAppServer " << m_nodeId << " waiting for " << nextSchedule.GetNanoSeconds() << " ns before doing a new proposal.");
+            m_proposeEvent = ns3::Simulator::Schedule(nextSchedule, &PaxosAppServer::DoAsyncPropose, this);
         }
+        */
+
+        // And now we can do a new proposal 
+        // wait for a random time to simulate the msg loss
+        uint32_t factor = m_uniformRandomVariable->GetInteger(); // 1 to 10
+        ns3::Time nextSchedule = ns3::NanoSeconds(factor * ns3::Time(m_asynLinkDelay).GetNanoSeconds());
+        NS_LOG_INFO("PaxosAppServer " << m_nodeId << " waiting for " << nextSchedule.GetNanoSeconds() << " ns before doing a new proposal.");
+        m_proposeEvent = ns3::Simulator::Schedule(nextSchedule, &PaxosAppServer::DoAsyncPropose, this);
     }
+
+}
+
+void
+PaxosAppServer::SetAsynLinkDelayus(std::string linkDelay)
+{
+    m_asynLinkDelay = linkDelay;
 }

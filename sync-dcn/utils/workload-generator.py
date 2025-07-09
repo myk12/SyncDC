@@ -9,10 +9,10 @@ def parse_args():
     parser.add_argument("--num_jobs", type=int, default=100, help="Number of jobs to generate (default: 1000)")
     parser.add_argument("--mean_inter_arrival_time", type=float, default=0.1, 
                         help="Mean inter-arrival time for Poisson distribution (ms, default: 1.0)")
-    parser.add_argument("--request_nodes", type=str, default="4,6,8,10", 
-                        help="Comma-separated list of possible node counts (default: 4,6,8,10)")
+    parser.add_argument("--request_nodes", type=str, default="4,6,8",
+                        help="Comma-separated list of possible node counts (default: 4,6,8)")
     parser.add_argument("--data_size", type=str, default="1", 
-                        help="Comma-separated list of possible data sizes in MB (default: 10)")
+                        help="Comma-separated list of possible data sizes in MB (default: 1)")
     parser.add_argument("--output_file", type=str, default="workload.csv", 
                         help="Output CSV file name (default: workload.csv)")
     parser.add_argument("--traffic_mode", type=str, default="poisson", 

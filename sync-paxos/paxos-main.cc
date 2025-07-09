@@ -30,9 +30,9 @@ int main(int argc, char *argv[])
     ns3::LogComponentEnable("PaxosAppClient", ns3::LOG_INFO);
     ns3::LogComponentEnable("SyncPaxos", ns3::LOG_INFO);
     ns3::LogComponentEnable("PaxosAppServer", ns3::LOG_INFO);
-    ns3::LogComponentEnable("PaxosFrame", ns3::LOG_INFO);
-    ns3::LogComponentEnable("PaxosAppServerListener", ns3::LOG_INFO);
-    ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_INFO);
+    //ns3::LogComponentEnable("PaxosFrame", ns3::LOG_INFO);
+    //ns3::LogComponentEnable("PaxosAppServerListener", ns3::LOG_INFO);
+    //ns3::LogComponentEnable("PaxosAppServerProposer", ns3::LOG_INFO);
     ns3::LogComponentEnable("SyncDCTopologySpineLeaf", ns3::LOG_INFO);
 
     ns3::CommandLine cmd;
@@ -76,8 +76,8 @@ int main(int argc, char *argv[])
     {
         // In synchronous way, we set the delay as little as possible
         // so that we can make sure the msg delay is bounded.
-        delayLeaf2Spine = "5us";
-        delayHost2Leaf = "5us";
+        delayLeaf2Spine = "1us";
+        delayHost2Leaf = "1us";
     }
     else
     {
@@ -129,10 +129,9 @@ int main(int argc, char *argv[])
     // Set Paxos Server App Start Stop
     ns3::Time start = ns3::Seconds(1.0);
     ns3::Time end = ns3::Seconds(2.0);
+
     topology.SetPaxosServerAppStartStop(start, end);
     topology.SetPaxosClientAppStartStop(start, end);
-
-    topology.ExportTopologyToYaml("paxos-topology.yaml");
 
     // Populate the Routing table
     ns3::Ipv4GlobalRoutingHelper::PopulateRoutingTables();
