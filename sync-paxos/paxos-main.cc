@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 
     // Set Paxos Server App Start Stop
     ns3::Time start = ns3::Seconds(1.0);
-    ns3::Time end = ns3::Seconds(2.0);
+    ns3::Time end = ns3::Seconds(3.0);
 
     topology.SetPaxosServerAppStartStop(start, end);
     topology.SetPaxosClientAppStartStop(start, end);

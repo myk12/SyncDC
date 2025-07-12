@@ -23,7 +23,7 @@ fi
 delay_bound_arr=(1000 100 10 1)
 #delay_bound_arr=(100 10)
 # Sync Error Parameter Array
-sync_error_arr=(10000 1000 100 10 1)
+sync_error_arr=(10000)
 
 mkdir -p result/sync
 

@@ -84,13 +84,10 @@ class SyncDCPlot:
             for sync_dir in os.listdir(os.path.join(self.paxos_data_sync_dir, delay_dir)):
                 # Parse sync error, dir name: sync_100ns
                 sync_err = int(re.search(r"sync_(\d+)ns", sync_dir).group(1))
-                curr_dir = os.path.join(self.paxos_data_sync_dir, delay_dir, sync_dir)
                 
-                # Parse the number of operations per second
-                file = os.listdir(curr_dir)[0]
-                num_lines = len(open(os.path.join(curr_dir, file), 'r').readlines())
-                
-                opps = (num_lines - 2) / self.paxos_runtime
+                opps = 1e9 // (delay_bound * 1000 + 2 * sync_err)
+                logging.info(f"{delay_bound}us, {sync_err}ns, {opps}")
+
                 opps_dict[f"{delay_bound}us"][f"{sync_err}ns"] = opps
                 
                 # Parse packets number of each server
@@ -248,49 +245,28 @@ class SyncDCPlot:
         df = pd.DataFrame(delay_list, columns=['delay'])
         self.allreduce_ocs_delay_df = df
         logging.info(self.allreduce_ocs_delay_df.describe())
-    
-    def plot_allreduce_evaluation(self):
-        # Plot all-in-one
-        # Subplot 1x2
-        fig, axes = plt.subplots(1, 2, figsize=(7, 2.5))
-        colors = sns.color_palette('husl', 5)
-        sns.set_style('whitegrid')        
-        self.plot_allreduce_completion_time(axes[0], colors)
-        self.plot_allreduce_packet_delay(axes[1], colors)
-
-        # savefig 
-        plt.tight_layout()
-        plt.savefig('allreduce_evalution.pdf', bbox_inches='tight')
-
-    def plot_paxos_traffic_bar(self, ax, colors):
-        pass
 
     def plot_paxos_delay_comparison(self):
-        fig = plt.figure(figsize=(3.5, 2.5))
-        sns.set_style('whitegrid')
-
+        plt.figure(figsize=(3, 2.5))
         # seconds to microseconds
         sync_delay = self.paxos_sync_delay * 1e6
         async_delay = self.paxos_async_delay * 1e6
         
-        colors = sns.color_palette('husl', 2)
-
         # Plot CDF
-        sns.ecdfplot(data=sync_delay, label='Sync. Paxos', linewidth=2.5, color=colors[0])
-        sns.ecdfplot(data=async_delay, label='Async. Paxos', linewidth=2.5, color=colors[1])
+        sns.ecdfplot(data=sync_delay, label='Sync. Paxos', linewidth=2.5)
+        sns.ecdfplot(data=async_delay, label='Async. Paxos', linewidth=2.5)
         plt.grid(True, linestyle='--', linewidth=0.5, color='gray')
-
-        sync_delay_max = sync_delay.max()
-        async_delay_max = async_delay.max()
 
         plt.xlabel("Consensus Time (us)")
         plt.ylabel("CDF")
         plt.xscale('log')
         plt.legend()
+        plt.tight_layout()
         plt.savefig('paxos_delay.pdf')
         plt.close()
 
     def plot_paxos_sync_line(self):
+        plt.figure(figsize=(3,2.5))
         df = self.paxos_sync_opps_df
         # Convert index to readable format
         df.index = [to_readable_time(idx) for idx in df.index]
@@ -307,10 +283,6 @@ class SyncDCPlot:
         sorted_columns = sorted(columns_ns, key=lambda x: columns_ns[x])
         df = df[sorted_columns]
         
-        # Create figure
-        plt.figure(figsize=(3.5,2.5))
-        sns.set_style('whitegrid')
-
         # Create a line plot
         markers = ['o', 's', '^', 'D', 'v']
         i = 0
@@ -318,15 +290,16 @@ class SyncDCPlot:
             sns.lineplot(x=df.index, y=df[column], label=column, marker=markers[i], linewidth=2.5)
             i = i+1
 
-        plt.xlabel("Clock Sync. Error")
-        plt.ylabel("Operations per second")
+        plt.xlabel("(b) Clock Sync. Error", fontsize=14)
+        plt.ylabel("Operations per second", fontsize=14)
         plt.yscale('log')
-        plt.legend(title='Delay Bound')
+        plt.legend(title='Delay Bound', loc='center left')
         plt.grid(True, linestyle='--', linewidth=0.5, color='gray')
+        plt.tight_layout()
         plt.savefig('paxos_sync.pdf')
         plt.close()
     
-    def plot_allreduce_completion_time(self, ax, colors):
+    def plot_allreduce_completion_time(self):
         # calculate job completion time
         ring_df     = pd.merge(self.allreduce_workload_df, self.allreduce_ring_job_df, on='job_id', how='left')
         fastpass_df = pd.merge(self.allreduce_workload_df, self.allreduce_fastpass_job_df, on='job_id', how='left')
@@ -337,44 +310,49 @@ class SyncDCPlot:
         fastpass_plot_ms = (fastpass_df['end_time'] - fastpass_df['create_time']) / 1e6
         ocs_plot_ms      = (ocs_df['end_time'] - ocs_df['create_time']) / 1e6
 
-        sns.ecdfplot(data=ring_plot_ms, label='Ring', ax=ax, linewidth=2.5)
-        sns.ecdfplot(data=fastpass_plot_ms, label='Fastpass', ax=ax, linewidth=2.5)
-        sns.ecdfplot(data=ocs_plot_ms, label='OCS', ax=ax, linewidth=2.5)
+        plt.figure(figsize=(3,2.5))
+
+        sns.ecdfplot(data=ring_plot_ms, label='Ring', linewidth=2.5)
+        sns.ecdfplot(data=fastpass_plot_ms, label='Fastpass', linewidth=2.5)
+        sns.ecdfplot(data=ocs_plot_ms, label='OCS', linewidth=2.5)
         
         # Add vertical lines at the maximum value of each CDF
         max_ring = ring_plot_ms.max()
         max_fastpass = fastpass_plot_ms.max()
         max_ocs = ocs_plot_ms.max()
 
-        ax.axvline(x=max_ring, color='gray', linestyle='--', alpha=0.5)
-        ax.axvline(x=max_fastpass, color='gray', linestyle='--', alpha=0.5)
-        ax.axvline(x=max_ocs, color='gray', linestyle='--', alpha=0.5)
-        
-        print(max_ocs/max_ring)
-        print(max_ocs/max_fastpass)
-        
-        ax.set_ylabel('CDF', fontsize=13)
-        ax.set_xlabel('(a) Allreduce Completion Time (ms)', fontsize=13)
-        ax.legend(bbox_to_anchor=(0.4, 0.5))
-        ax.grid(True, linestyle='--', linewidth=0.5, color='gray')
+        plt.xlabel('(a) Time (ms)', fontsize=14)
+        plt.ylabel('CDF', fontsize=14)
+        plt.grid(True, linestyle='--', linewidth=0.5, color='gray')
+        plt.legend()
+        plt.tight_layout()
 
-    def plot_allreduce_packet_delay(self, ax, colors):
+        plt.savefig('allreduce_completion_time.pdf')
+        plt.close()
+        
+
+    def plot_allreduce_packet_delay(self):
         ring_delay_data = self.allreduce_ring_delay_df['delay'] / 1e3
         fastpass_delay_data = self.allreduce_fastpass_delay_df['delay'] / 1e3
         ocs_delay_data = self.allreduce_ocs_delay_df['delay'] / 1e3 + 2
+
+        print(ring_delay_data)
+        print(fastpass_delay_data)
+        print(ocs_delay_data)
+        plt.figure(figsize=(3,2.5))
         
-        sns.ecdfplot(data=ring_delay_data, label='Ring', ax=ax, linewidth=2.5)
-        sns.ecdfplot(data=fastpass_delay_data, label='Fastpass', ax=ax, linewidth=2.5)
-        sns.ecdfplot(data=ocs_delay_data, label='OCS', ax=ax, linewidth=2.5)
-        
-        ax.set_xscale('log')
-        ax.set_ylabel('CDF', fontsize=13)
-        ax.set_xlabel('(b) Packet Delay (us)', fontsize=13)
-        ax.legend()
-        ax.grid(True, linestyle='--', linewidth=0.5, color='gray')
-        ax.set_xticks([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
-        ax.axvline(x=1, color='gray', linestyle='--', label='Fabric Delay')
-        ax.text(0.95, 0.5, 'Fabric Delay', color='gray', fontsize=10, va='center', ha='right', rotation=90)
+        sns.ecdfplot(data=ring_delay_data, label='Ring', linewidth=2.5)
+        sns.ecdfplot(data=fastpass_delay_data, label='Fastpass', linewidth=2.5)
+        sns.ecdfplot(data=ocs_delay_data, label='OCS', linewidth=2.5)
+
+        plt.tight_layout()
+        plt.xscale('log')
+        plt.xlabel('(b) Delay (us)', fontsize=14)
+        plt.ylabel('CDF',fontsize=14)
+        plt.grid(True, linestyle='--', linewidth=0.5, color='gray')
+        plt.legend()
+        plt.savefig('allreduce_packet_delay.pdf')
+        plt.close()
 
 def main():
     # Set up logging
@@ -385,7 +363,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-dir', type=str, default='data', help='Path to the results directory')
     parser.add_argument('--paxos-dir', type=str, default='paxos', help='Path to the paxos results directory')
-    parser.add_argument('--paxos-runtime', type=int, default=5, help="Paxos Simulation runtime in seconds.")
+    parser.add_argument('--paxos-runtime', type=int, default=2, help="Paxos Simulation runtime in seconds.")
     parser.add_argument('--allreduce-dir', type=str, default='allreduce', help='Path to the allreduce results directory')
     parser.add_argument('--allreduce-workload', type=str, default='workload.csv', help='Allreduce workload file.')
     parser.add_argument('--ring-path', type=str, default='ring')
@@ -401,9 +379,11 @@ def main():
     sync_dc_plot.parse_allreduce_ring_data()
     sync_dc_plot.parse_allreduce_fastpass_data()
     sync_dc_plot.parse_allreduce_ocs_data()
-    sync_dc_plot.plot_paxos_delay_comparison()
+
+    sns.set_style('whitegrid')
     sync_dc_plot.plot_paxos_sync_line()
-    sync_dc_plot.plot_allreduce_evaluation()
+    sync_dc_plot.plot_allreduce_completion_time()
+    sync_dc_plot.plot_allreduce_packet_delay()
 
 if __name__ == '__main__':
     main()
