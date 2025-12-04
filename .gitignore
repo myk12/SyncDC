@@ -8,3 +8,27 @@ result
 *.delay
 *.dat
 *.log
+
+# --- Caches ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+.cache/
+# --- Virtual Environments ---
+.venv/
+venv/
+env/
+# --- Distribution / packaging ---
+dist/
+build/
+*.egg-info/
+wheels/
+sdist/
+*.egg

@@ -1,0 +1,15 @@
+[build-system]
+requires = ["hatchling"] # 使用 hatchling 作为构建后端，简单好用
+build-backend = "hatchling.build"
+
+[project]
+name = "pysim"
+version = "0.1.0"
+description = "Simulation core with src layout"
+dependencies = [
+    "numpy", # 如果你的 src 代码里依赖了 numpy，在这里声明
+]
+
+# 关键设置：告诉 uv 你的代码在 src 目录下，映射为包名
+[tool.hatch.build.targets.wheel]
+packages = ["sim_core"]
