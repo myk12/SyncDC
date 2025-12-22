@@ -1,3 +1,4 @@
+import os
 from typing import Dict
 from loguru import logger
 from sim_core.network import SyncNetwork, Message
@@ -65,8 +66,8 @@ class PaxosNode:
         }
         self._proposer_states[my_slot] = propose
 
-        # 3. Start Paxos for my Slot by sending PREPARE
-        msg = Message(self._id, "", 'PREPARE', round_id, my_slot, val=propose['value'])
+        # 3. Start Paxos for my Slot by sending PROPOSE
+        msg = Message(self._id, "", 'PROPOSE', round_id, my_slot, val=propose['value'])
         self._network.broadcast(self, msg)
 
     def on_message(self, msg: Message):
@@ -76,17 +77,17 @@ class PaxosNode:
             return
 
         self.log_event(f"Received message {msg.type} from {msg.sender} for Slot {msg.slot}")
-        if msg.type == 'PREPARE':
-            self.handle_prepare(msg)
+        if msg.type == 'PROPOSE':
+            self.handle_propose(msg)
         elif msg.type == 'ACCEPT':
             self.handle_accept(msg)
         elif msg.type == 'DECIDED':
             self.handle_decided(msg)
 
     # --- handler for Acceptor logic (Phase 1a and 2a) ---
-    def handle_prepare(self, msg: Message):
+    def handle_propose(self, msg: Message):
         # extract acceptor state for the slot
-        self.log_event(f"Handling PREPARE for Slot {msg.slot} from {msg.sender} in Round {msg.round}")
+        self.log_event(f"Handling PROPOSE for Slot {msg.slot} from {msg.sender} in Round {msg.round}")
         self._acceptor_states[msg.slot] = {
             "proposer_id": msg.sender,
             "round": msg.round,
@@ -143,3 +144,16 @@ class PaxosNode:
         self._acceptor_states[msg.slot]['decided'] = True
         self._log[msg.slot] = msg.val
         self.log_event(f"Slot {msg.slot} decided with value: {msg.val}")
+    
+    ###############################################
+    # Additional helper methods can be added here #
+    ###############################################
+    def save_state(self, output_dir : str = "./results/"):
+        os.makedirs(output_dir, exist_ok=True)
+        filepath = os.path.join(output_dir, f"{self._id}_log.txt")
+
+        with open(filepath, 'w') as f:
+            for slot in sorted(self._log.keys()):
+                f.write(f"Slot {slot}: {self._log[slot]}\n")
+        self.log_event(f"State saved to {filepath}")
+ 

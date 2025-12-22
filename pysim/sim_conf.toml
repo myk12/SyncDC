@@ -1,0 +1,38 @@
+#==========================================
+#   SyncDC Simulation Configuration
+#==========================================
+#-------------------------
+# Simulator Settings
+#-------------------------
+[simulator]
+# Random seed for simulation
+seed = 42
+# Time step for simulation in nanoseconds
+time_step = 1
+# Maximum simulation time in nanoseconds
+max_time = 1000
+# Directory to store simulation results
+output_dir = "./results"
+#-------------------------
+# System Settings
+#-------------------------
+[system]
+# Number of nodes in the distributed system
+num_nodes = 5
+
+#-------------------------
+# Network Settings
+#-------------------------
+[network]
+# Message delay in nanoseconds
+message_delay = 490
+# Message loss rate (0.0 to 1.0)
+loss_rate = 0.0
+
+#-------------------------
+# Node Settings
+#-------------------------
+[node]
+# Maximum execution bound for nodes
+exec_bound = 490
+failure_rate = 0.01

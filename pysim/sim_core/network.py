@@ -8,7 +8,7 @@ from sim_core.core import Simulator
 class Message:
     sender: str
     receiver: str
-    type: str  # PREPARE, ACCEPT, DECIDED
+    type: str  # PROPOSE, ACCEPT, DECIDED
     round : int # Paxos round ID
     slot: int  # Log slot ID
     val: str # value being proposed/accepted/decided
